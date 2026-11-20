@@ -1,12 +1,17 @@
-# Vorlage für Home-Assistant-Apps
+# Mail Forwarder
 
 [🇬🇧 English](README.md) · **🇩🇪 Deutsch**
 
-Aus dieser Vorlage entsteht eine Supervisor-App mit Image-Builds für mehrere Architekturen, Laufzeittests und Veröffentlichung auf GHCR.
+> **Experimentell.** Die App ist neu und wurde in der Praxis noch wenig getestet.
 
-1. Erstelle aus der Vorlage ein Repository mit dem Namen `Home-Assistant-<Projekt>-App`, damit der App-Katalog es findet.
-2. Benenne `example-app/` nach deinem Slug. Passe in `config.yaml` den Slug, Namen, die Beschreibung, URL und Optionen an.
-3. Aktualisiere das Repository-Label im Dockerfile und ersetze die Beispielausgabe in `run.sh`. Für ältere Architekturen wie `armv7` verwendet das Dockerfile eigene `*_LEGACY`-Paketversionen.
-4. Passe `.github/tests/runtime.sh` an. Die Pipeline führt das Skript im gebauten Image aus.
-5. Hinterlege `ORCHESTRATION_PAT` für den Zugriff auf die private Workflow-Engine. Mit einem lokalen Checkout unter `.engine/` erzeugt `python .engine/.scripts/readme.py` den Titel und die Badges der englischen README.
-6. Erhöhe für ein Release `version` in `config.yaml` und `BUILD_VERSION` im Dockerfile gemeinsam. Beschreibe im [Changelog](example-app/CHANGELOG.md), was sich für Nutzer ändert.
+Mail Forwarder gibt dir und deiner Familie E-Mail-Adressen auf **deiner eigenen Domain** und leitet alles an das Postfach weiter, das ohnehin genutzt wird (Gmail, Outlook/Hotmail, WEB.DE, ...). Es gibt keine Postfächer und keinen Speicherbedarf: Eine Nachricht wird angenommen, weitergereicht und wieder vergessen.
+
+* Pro Person ein echtes Postfach und beliebig viele Adressen, auch auf mehreren Domains.
+* Kostenlose DuckDNS-Namen funktionieren zum Empfangen, die App hält sie auf deiner aktuellen IP-Adresse.
+* Eine geführte Seite in Home Assistant erklärt DNS-Einträge, Versanddienst und Router (OPNsense, FRITZ!Box), prüft alles und zeigt, welcher Port oder Eintrag fehlt.
+* Die Testmail beweist den ganzen Weg: raus über den Versanddienst, über das Internet wieder herein und weiter ins Postfach.
+* Unbekannte Adressen werden schon im SMTP-Gespräch abgelehnt: kein offenes Relay, keine Rückläufer an gefälschte Absender.
+
+Die vollständige Beschreibung steht auf Englisch in der [Dokumentation](mail_forwarder/DOCS.md). Die App-Seite selbst führt dich Schritt für Schritt durch die Einrichtung.
+
+**Voraussetzungen:** eine öffentliche IPv4-Adresse (kein CGNAT/DS-Lite), ein Router mit Portweiterleitung für Port 25, eine eigene Domain oder ein DuckDNS-Name und ein kostenloser Versanddienst (oder ein Gmail- bzw. WEB.DE-Konto).
