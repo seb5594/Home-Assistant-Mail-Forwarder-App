@@ -1,0 +1,6 @@
+configuration:
+  log_level:
+    name: Protokollstufe
+    description: Wie ausführlich die App ins Protokoll schreibt. "info" passt für den Alltag, "debug" hilft bei der Fehlersuche.
+network:
+  25/tcp: Eingehende E-Mails (SMTP)

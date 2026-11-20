@@ -1,0 +1,12 @@
+#!/usr/bin/with-contenv bashio
+# shellcheck shell=bash
+# Starts the mail forwarder: the SMTP receiver, the delivery worker and the web interface
+# for Home Assistant ingress all run inside this one Python process.
+
+bashio::log.info "Starting Mail Forwarder $(cat /etc/mail-forwarder/version)"
+
+cd /opt/mail-forwarder || exit 1
+# No byte-code files are written (saves writes on SD cards) and log lines appear immediately.
+export PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+
+exec python3 -m mailforwarder

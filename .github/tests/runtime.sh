@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-# Runs inside the built image: source the app and call main() against sample options.
-fixture=$(mktemp -d)
-trap 'rm -rf -- "$fixture"' EXIT
-printf '{"greeting": "Hello CI"}\n' > "$fixture/options.json"
-export OPTIONS_FILE="$fixture/options.json"
-# shellcheck source=example-app/run.sh
-source "${RUN_SCRIPT:-/run.sh}"
+# Runs inside the built image (release pipeline): the unit and end-to-end tests of the
+# application run against the code that was installed into the image.
+export MF_CODE_DIR=/opt/mail-forwarder
+export PYTHONDONTWRITEBYTECODE=1
 
-test "$(main)" = "Hello CI"
-echo 'PASS: greeting is read from the app options'
+command -v openssl >/dev/null || { echo 'FAIL: openssl is missing from the image' >&2; exit 1; }
+echo 'PASS: openssl is installed'
+
+python3 /tests/run_tests.py
+
+test "$(cat /etc/mail-forwarder/version)" != "dev"
+echo 'PASS: the image knows its version'

@@ -1,0 +1,22 @@
+name: Mail Forwarder
+version: "2026.11.20"
+slug: mail_forwarder
+description: Receives mail for your own domains and forwards it to your Gmail, Outlook or WEB.DE inbox.
+url: https://github.com/seb5594/Home-Assistant-Mail-Forwarder-App
+stage: experimental
+init: false
+arch:
+  - amd64
+  - aarch64
+ingress: true
+ingress_port: 8099
+panel_icon: mdi:email-fast-outline
+panel_title: Mail Forwarder
+ports:
+  25/tcp: 25
+ports_description:
+  25/tcp: Incoming mail (SMTP). Your router has to forward port 25 of your public address to this port.
+options:
+  log_level: info
+schema:
+  log_level: list(debug|info|warning|error)
