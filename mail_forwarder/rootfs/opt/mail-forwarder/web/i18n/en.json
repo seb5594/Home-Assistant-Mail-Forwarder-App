@@ -1,7 +1,5 @@
 {
  "app": {
-  "experimental": "Experimental",
-  "experimental_hint": "This app is new and still being tested",
   "loading": "Loading…",
   "unreachable": "The app does not answer",
   "unreachable_text": "The app does not answer. Is it still running?",
@@ -92,7 +90,7 @@
    },
    "mailbox": {
     "title": "👪 Add the people who get mail",
-    "detail": "Each person gets one or more addresses and one real inbox."
+    "detail": "Each person gets one or more addresses and one or more real inboxes."
    },
    "sending": {
     "title": "📤 Choose how mail is sent on",
@@ -392,7 +390,9 @@
   "queue_missing": "That message does not exist (any more).",
   "not_found": "Not found",
   "internal": "Something went wrong inside the app. See the log.",
-  "need_address": "Add at least one address, for example “info”."
+  "need_address": "Add at least one address, for example “info”.",
+  "target_missing": "{name}: add at least one inbox that the mail is forwarded to.",
+  "targets_many": "{name}: at most {max} inboxes per person."
  },
  "events": {
   "ready": "Ready: receiving mail on port {smtp_port}.",
@@ -450,8 +450,8 @@
   "name": "Name",
   "name_hint": "Only for you, to tell the entries apart.",
   "name_placeholder": "Uncle Max",
-  "target": "Forward everything to this inbox",
-  "target_hint": "The real mailbox of this person, for example at Gmail, Outlook/Hotmail or WEB.DE.",
+  "target": "Forward everything to these inboxes",
+  "target_hint": "The real mailboxes of this person, for example at Gmail, Outlook/Hotmail or WEB.DE. With more than one, every mail goes to all of them.",
   "addresses": "Addresses of this person",
   "addresses_hint": "Mail to any of these goes to the inbox above. One person can have several, even on different domains.",
   "local_label": "First part of the address",
@@ -460,7 +460,10 @@
   "add_address": "+ Add another address",
   "enabled": "Forwarding is switched on",
   "remove_title": "Remove {name}?",
-  "remove_text": "Mail to {addresses} will be refused from now on."
+  "remove_text": "Mail to {addresses} will be refused from now on.",
+  "target_label": "Inbox",
+  "add_target": "+ Add another inbox",
+  "remove_target": "Remove this inbox"
  },
  "domains": {
   "title": "🌐 Your domains",
@@ -1006,6 +1009,18 @@
     [
      "I only allow traffic from Germany. Is that a problem?",
      "Yes. Gmail, Outlook and many sending services send from data centers abroad, so a country block stops their mail. Keep the block for everything else and add a pass rule for port 25 above it, the Router & network page shows how."
+    ],
+    [
+     "How do I send mail from my new address?",
+     "The app only receives and forwards. To answer from `max@your-domain.com`, add the address in Gmail under Settings ‣ Accounts ‣ Send mail as ‣ Add another email address and use the SMTP server of your sending service (for example `smtp-relay.brevo.com`, port 587, with the login and key from the Sending page). Gmail sends a confirmation code to the address, and it arrives through this app."
+    ],
+    [
+     "Can one address go to several inboxes?",
+     "Yes. Give the person several inboxes in the Mailboxes page. Every mail to the addresses of that person goes to all of them, each inbox gets its own copy."
+    ],
+    [
+     "Outlook or Hotmail puts the forwarded mail into junk.",
+     "Add the sender address from the Sending page to the safe senders list of that mailbox (Outlook: Settings ‣ Mail ‣ Junk email ‣ Safe senders) and mark the first mail as “not junk”."
     ]
    ]
   },
@@ -1039,6 +1054,14 @@
     [
      "Gmail connects (the firewall log shows it) but nothing arrives",
      "Read the destination in the log line. It has to be your Home Assistant. If it is another device, for example a reverse proxy, the Redirect Target IP of the port forward is wrong, see “Check where the mail ends up” on the Router & network page."
+    ],
+    [
+     "DNS looks right but mail does not arrive",
+     "Look for leftovers: an old MX record, an AAAA record, Cloudflare Email Routing that is still switched on (it owns the MX records) or a port forward that points to another device. Run the checks again after a few minutes, DNS changes need time."
+    ],
+    [
+     "The sending service says the sender is not allowed",
+     "Verify the domain of the sender address at the service (DNS records) or use an address that is verified there. With Gmail or WEB.DE the sender address has to be the address of the account itself."
     ]
    ]
   }

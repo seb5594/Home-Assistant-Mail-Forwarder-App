@@ -53,8 +53,6 @@ function drawNavigation(active) {
 
 // The footer shows the version, the language switch and the author's credit with the two links.
 function drawFooter() {
-  document.getElementById('badge-experimental').textContent = t('app.experimental');
-  document.getElementById('badge-experimental').title = t('app.experimental_hint');
   document.getElementById('footer-version').textContent = `${ctx.state.version} · Mail Forwarder`;
   clear(document.getElementById('language-switch')).append(...Object.entries(LANGUAGES).map(([code, name]) =>
     h('button', { type: 'button', 'aria-pressed': String(code === language()), title: name, onclick: () => {

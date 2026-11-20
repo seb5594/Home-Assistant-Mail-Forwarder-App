@@ -155,7 +155,7 @@ def sample_config(relay_port: int, **delivery) -> dict:
     """A complete configuration: one domain, one person with one address, a relay on ``relay_port``."""
     return {
         "domains": [{"name": "example.test", "kind": "own", "mail_host": "mail.example.test"}],
-        "people": [{"name": "Anna", "target": "anna@mailbox.test", "enabled": True,
+        "people": [{"name": "Anna", "targets": ["anna@mailbox.test"], "enabled": True,
                     "addresses": [{"local": "info", "domain": "example.test"}]}],
         "delivery": {"mode": "relay", "sender_address": "forward@example.test", "rewrite_from": True,
                      "relay": {"preset": "custom", "host": "127.0.0.1", "port": relay_port, "security": "none",

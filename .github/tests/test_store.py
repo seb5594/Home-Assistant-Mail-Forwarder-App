@@ -38,7 +38,7 @@ class NormalizeTests(unittest.TestCase):
         cleaned = store.normalize(valid_config())
         self.assertEqual(cleaned["domains"][0]["mail_host"], "mail.example.test")
         self.assertEqual(cleaned["domains"][1]["mail_host"], "family.duckdns.org")
-        self.assertEqual(cleaned["people"][0]["target"], "anna@gmail.com")
+        self.assertEqual(cleaned["people"][0]["targets"], ["anna@gmail.com"])
         self.assertTrue(cleaned["people"][0]["id"])
         self.assertEqual(cleaned["delivery"]["mode"], "relay")
 
@@ -66,6 +66,37 @@ class NormalizeTests(unittest.TestCase):
         config["people"][0]["addresses"][0]["domain"] = "other.test"
         with self.assertRaises(ConfigError):
             store.normalize(config)
+
+
+class InboxTests(unittest.TestCase):
+    def test_a_single_target_of_an_older_configuration_becomes_a_list(self):
+        cleaned = store.normalize(valid_config())
+        self.assertEqual(cleaned["people"][0]["targets"], ["anna@gmail.com"])
+        self.assertNotIn("target", cleaned["people"][0])
+
+    def test_several_inboxes_are_kept_without_duplicates_and_empty_rows(self):
+        config = valid_config()
+        del config["people"][0]["target"]
+        config["people"][0]["targets"] = ["Anna@Gmail.com", "", "anna@web.de", "anna@gmail.com"]
+        self.assertEqual(store.normalize(config)["people"][0]["targets"], ["anna@gmail.com", "anna@web.de"])
+
+    def test_every_inbox_is_checked_for_loops(self):
+        config = valid_config()
+        config["people"][0]["targets"] = ["anna@gmail.com", "anna@example.test"]
+        with self.assertRaises(ConfigError) as caught:
+            store.normalize(config)
+        self.assertEqual(caught.exception.code, "target_loop")
+
+    def test_a_person_needs_an_inbox_but_not_too_many(self):
+        config = valid_config()
+        config["people"][0]["targets"] = [" "]
+        with self.assertRaises(ConfigError) as caught:
+            store.normalize(config)
+        self.assertEqual(caught.exception.code, "target_missing")
+        config["people"][0]["targets"] = [f"anna{n}@gmail.com" for n in range(store.MAX_TARGETS + 1)]
+        with self.assertRaises(ConfigError) as caught:
+            store.normalize(config)
+        self.assertEqual(caught.exception.code, "targets_many")
 
 
 class SecretTests(unittest.TestCase):
@@ -116,7 +147,7 @@ class SecretTests(unittest.TestCase):
             config_store.replace(config)
             routes = config_store.routes()
             self.assertEqual(sorted(routes), ["anna@family.duckdns.org", "info@example.test"])
-            self.assertEqual(routes["info@example.test"].target, "anna@gmail.com")
+            self.assertEqual(routes["info@example.test"].targets, ("anna@gmail.com",))
 
 
 if __name__ == "__main__":

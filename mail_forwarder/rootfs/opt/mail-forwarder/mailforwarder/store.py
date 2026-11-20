@@ -39,6 +39,8 @@ class ConfigError(Message):
         "mail_host_invalid": "'{host}' is not a valid mail server name.",
         "person_name": "Every person needs a name.",
         "target_invalid": "'{target}' is not a valid e-mail address for {name}.",
+        "target_missing": "{name}: add at least one inbox that the mail is forwarded to.",
+        "targets_many": "{name}: at most {max} inboxes per person.",
         "target_loop": "{name}: the mailbox {target} is on one of your own domains, "
                        "which would make mail go in circles.",
         "local_invalid": "'{local}' cannot be used as the first part of an address ({name}).",
@@ -52,11 +54,14 @@ class ConfigError(Message):
     }
 
 
+MAX_TARGETS = 10
+
+
 class Route(NamedTuple):
-    """Where mail for one address goes."""
+    """Where mail for one address goes: every inbox of the person gets a copy."""
     person_id: str
     person: str
-    target: str
+    targets: tuple
 
 
 def default_config() -> dict:
@@ -129,17 +134,37 @@ def _normalize_domains(raw) -> list:
     return domains
 
 
+def _normalize_targets(item: dict, name: str, domain_names: set) -> list:
+    """The inboxes of a person. Configurations of earlier versions have a single ``target``."""
+    raw = item.get("targets")
+    if raw is None:
+        raw = [item["target"]] if item.get("target") else []
+    targets: list = []
+    for entry in raw if isinstance(raw, list) else []:
+        text = _text(entry)
+        if not text:
+            continue  # an empty row of the form
+        target = normalize_address(text)
+        if target is None:
+            raise ConfigError("target_invalid", target=text, name=name)
+        if target.rpartition("@")[2] in domain_names:
+            raise ConfigError("target_loop", name=name, target=target)
+        if target not in targets:
+            targets.append(target)
+    if not targets:
+        raise ConfigError("target_missing", name=name)
+    if len(targets) > MAX_TARGETS:
+        raise ConfigError("targets_many", name=name, max=MAX_TARGETS)
+    return targets
+
+
 def _normalize_people(raw, domain_names: set) -> list:
     people, claimed = [], {}
     for item in raw if isinstance(raw, list) else []:
         name = _text(item.get("name"), 60)
-        target = normalize_address(_text(item.get("target")))
         if not name:
             raise ConfigError("person_name")
-        if target is None:
-            raise ConfigError("target_invalid", target=_text(item.get("target")), name=name)
-        if target.rpartition("@")[2] in domain_names:
-            raise ConfigError("target_loop", name=name, target=target)
+        targets = _normalize_targets(item, name, domain_names)
         addresses = []
         for entry in item.get("addresses") or []:
             local = _text(entry.get("local")).lower()
@@ -156,7 +181,7 @@ def _normalize_people(raw, domain_names: set) -> list:
         people.append({
             "id": _text(item.get("id"), 32) or uuid.uuid4().hex[:8],
             "name": name,
-            "target": target,
+            "targets": targets,
             "enabled": _flag(item.get("enabled"), True),
             "addresses": addresses,
         })
@@ -295,7 +320,7 @@ class ConfigStore:
                     continue
                 for entry in person["addresses"]:
                     table[f"{entry['local']}@{entry['domain']}"] = Route(
-                        person["id"], person["name"], person["target"])
+                        person["id"], person["name"], tuple(person["targets"]))
             return table
 
     def domain_names(self) -> set:

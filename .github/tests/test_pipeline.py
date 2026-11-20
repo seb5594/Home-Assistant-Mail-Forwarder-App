@@ -88,6 +88,15 @@ class ForwardingTests(PipelineCase):
         wait_for(lambda: self.app.spool.counts() == {"queued": 0, "failed": 0})
         self.assertEqual(self.app.stats.snapshot()["forwarded"], 1)
 
+    def test_every_inbox_of_a_person_gets_its_own_copy(self):
+        config = self.app.store.get()
+        config["people"][0]["targets"] = ["anna@mailbox.test", "ben@mailbox.test"]
+        self.app.store.replace(config)
+        self.harness.send("bob@sender.example", ["info@example.test"], MAIL)
+        wait_for(lambda: len(self.relay.messages) == 2)
+        self.assertEqual(sorted(m["recipients"][0] for m in self.relay.messages),
+                         ["anna@mailbox.test", "ben@mailbox.test"])
+
     def test_one_message_for_two_addresses_of_the_same_person_is_sent_once(self):
         config = self.app.store.get()
         config["people"][0]["addresses"].append({"local": "anna", "domain": "example.test"})

@@ -1,7 +1,5 @@
 # Mail Forwarder
 
-> **Experimental.** The app is new. It works in tests, but has seen little real-world use yet.
-
 Mail Forwarder gives you e-mail addresses on your **own domain** (or a free DuckDNS name) and passes
 everything that arrives there on to a **real inbox** such as Gmail, Outlook/Hotmail or WEB.DE.
 There are no mailboxes to run and no storage to manage: a message is received, forwarded and
@@ -152,7 +150,7 @@ Switch `log_level` to `debug` and read the app log for more detail.
 
 * IPv4 only. Remove `AAAA` records of the mail server name, or forward IPv6 port 25 as well.
 * Messages up to 25 MB.
-* One inbox per person. Several people cannot share one address.
+* One address belongs to one person. A person can have up to ten inboxes, each gets its own copy.
 * No spam or virus filtering of incoming mail. The receiving inbox does that.
 * Bounces of undeliverable forwarded mail are not sent back to the original sender. They appear in
   **Activity**.

@@ -41,7 +41,7 @@ class WebTests(unittest.TestCase):
 
     def test_invalid_config_gets_a_readable_error(self):
         _, state = self.harness.api("GET", "/api/state")
-        state["config"]["people"][0]["target"] = "not-an-address"
+        state["config"]["people"][0]["targets"] = ["not-an-address"]
         status, body = self.harness.api("PUT", "/api/config", state["config"])
         self.assertEqual((status, body["code"]), (400, "target_invalid"))
         self.assertEqual(body["params"]["target"], "not-an-address")

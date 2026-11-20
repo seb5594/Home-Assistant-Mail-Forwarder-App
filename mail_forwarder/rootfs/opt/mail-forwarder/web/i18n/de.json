@@ -1,7 +1,5 @@
 {
  "app": {
-  "experimental": "Experimentell",
-  "experimental_hint": "Diese App ist neu und wird noch getestet",
   "loading": "Lädt…",
   "unreachable": "Die App antwortet nicht",
   "unreachable_text": "Die App antwortet nicht. Läuft sie noch?",
@@ -92,7 +90,7 @@
    },
    "mailbox": {
     "title": "👪 Personen hinzufügen, die Mails bekommen",
-    "detail": "Jede Person bekommt eine oder mehrere Adressen und ein echtes Postfach."
+    "detail": "Jede Person bekommt eine oder mehrere Adressen und ein oder mehrere echte Postfächer."
    },
    "sending": {
     "title": "📤 Versandweg wählen",
@@ -392,7 +390,9 @@
   "queue_missing": "Diese Nachricht gibt es (nicht mehr).",
   "not_found": "Nicht gefunden",
   "internal": "In der App ist etwas schiefgelaufen. Siehe Protokoll.",
-  "need_address": "Füge mindestens eine Adresse hinzu, zum Beispiel „info“."
+  "need_address": "Füge mindestens eine Adresse hinzu, zum Beispiel „info“.",
+  "target_missing": "{name}: Füge mindestens ein Postfach hinzu, an das weitergeleitet wird.",
+  "targets_many": "{name}: höchstens {max} Postfächer pro Person."
  },
  "events": {
   "ready": "Bereit: Mails werden auf Port {smtp_port} empfangen.",
@@ -450,8 +450,8 @@
   "name": "Name",
   "name_hint": "Nur für dich, um die Einträge auseinanderzuhalten.",
   "name_placeholder": "Onkel Max",
-  "target": "Alles an dieses Postfach weiterleiten",
-  "target_hint": "Das echte Postfach dieser Person, zum Beispiel bei Gmail, Outlook/Hotmail oder WEB.DE.",
+  "target": "Alles an diese Postfächer weiterleiten",
+  "target_hint": "Die echten Postfächer dieser Person, zum Beispiel bei Gmail, Outlook/Hotmail oder WEB.DE. Bei mehr als einem geht jede Mail an alle.",
   "addresses": "Adressen dieser Person",
   "addresses_hint": "Mails an jede dieser Adressen gehen an das Postfach oben. Eine Person kann mehrere haben, auch auf verschiedenen Domains.",
   "local_label": "Erster Teil der Adresse",
@@ -460,7 +460,10 @@
   "add_address": "+ Weitere Adresse hinzufügen",
   "enabled": "Weiterleitung ist eingeschaltet",
   "remove_title": "{name} entfernen?",
-  "remove_text": "Mails an {addresses} werden ab sofort abgewiesen."
+  "remove_text": "Mails an {addresses} werden ab sofort abgewiesen.",
+  "target_label": "Postfach",
+  "add_target": "+ Weiteres Postfach hinzufügen",
+  "remove_target": "Dieses Postfach entfernen"
  },
  "domains": {
   "title": "🌐 Deine Domains",
@@ -1006,6 +1009,18 @@
     [
      "Ich erlaube nur Verkehr aus Deutschland. Ist das ein Problem?",
      "Ja. Gmail, Outlook und viele Versanddienste senden aus Rechenzentren im Ausland, deshalb stoppt eine Ländersperre ihre Mails. Lass die Sperre für alles andere bestehen und lege darüber eine Pass-Regel für Port 25 an, die Seite Router & Netzwerk zeigt, wie."
+    ],
+    [
+     "Wie sende ich Mails von meiner neuen Adresse?",
+     "Die App empfängt und leitet nur weiter. Um von `max@deine-domain.de` aus zu antworten, füge die Adresse in Gmail unter Einstellungen ‣ Konten ‣ „Senden als“ ‣ Weitere E-Mail-Adresse hinzufügen hinzu und nimm den SMTP-Server deines Versanddienstes (zum Beispiel `smtp-relay.brevo.com`, Port 587, mit Login und Schlüssel von der Seite Versand). Gmail schickt einen Bestätigungscode an die Adresse, der über diese App ankommt."
+    ],
+    [
+     "Kann eine Adresse an mehrere Postfächer gehen?",
+     "Ja. Gib der Person auf der Seite Postfächer mehrere Postfächer. Jede Mail an die Adressen dieser Person geht an alle, jedes Postfach bekommt seine eigene Kopie."
+    ],
+    [
+     "Outlook oder Hotmail sortiert die weitergeleitete Mail in den Junk-Ordner.",
+     "Nimm die Absenderadresse von der Seite Versand in die Liste der sicheren Absender dieses Postfachs auf (Outlook: Einstellungen ‣ E-Mail ‣ Junk-E-Mail ‣ Sichere Absender) und markiere die erste Mail als „kein Junk“."
     ]
    ]
   },
@@ -1039,6 +1054,14 @@
     [
      "Gmail verbindet sich (das Firewall-Protokoll zeigt es), aber nichts kommt an",
      "Lies das Ziel in der Protokollzeile. Es muss dein Home Assistant sein. Ist es ein anderes Gerät, zum Beispiel ein Reverse-Proxy, stimmt das Redirect Target IP der Portweiterleitung nicht, siehe „Prüfen, wo die Mail landet“ auf der Seite Router & Netzwerk."
+    ],
+    [
+     "DNS sieht richtig aus, aber keine Mail kommt an",
+     "Suche nach Altlasten: ein alter MX-Eintrag, ein AAAA-Eintrag, Cloudflare Email Routing, das noch eingeschaltet ist (es besitzt die MX-Einträge), oder eine Portweiterleitung, die auf ein anderes Gerät zeigt. Prüfe nach ein paar Minuten erneut, DNS-Änderungen brauchen Zeit."
+    ],
+    [
+     "Der Versanddienst sagt, der Absender sei nicht erlaubt",
+     "Verifiziere die Domain der Absenderadresse beim Dienst (DNS-Einträge) oder nimm eine dort verifizierte Adresse. Bei Gmail oder WEB.DE muss die Absenderadresse die Adresse des Kontos selbst sein."
     ]
    ]
   }
