@@ -66,22 +66,24 @@ def cached_public_ip() -> Optional[str]:
 
 
 def probe_tcp(host: str, port: int, timeout: float = 8.0) -> tuple:
-    """(reachable, detail). Also reads the greeting of mail servers, which proves that the
-    connection is not just accepted by a firewall that answers on behalf of the destination."""
+    """(reachable, code, detail). Also reads the greeting of mail servers, which proves that the
+    connection is not just accepted by a firewall that answers on behalf of the destination.
+
+    Codes: connected, greeting, bad_greeting, dns, timeout, refused, error."""
     try:
         with socket.create_connection((host, port), timeout=timeout) as connection:
             connection.settimeout(timeout)
             if port in (25, 587, 2525):
                 greeting = connection.recv(256).decode("ascii", "replace").strip()
                 if not greeting.startswith("220"):
-                    return False, f"Connected, but the server did not greet like a mail server: {greeting[:80]!r}"
-                return True, greeting.splitlines()[0][:100]
-            return True, "connected"
+                    return False, "bad_greeting", greeting[:80]
+                return True, "greeting", greeting.splitlines()[0][:100]
+            return True, "connected", ""
     except socket.gaierror:
-        return False, f"The name {host} could not be resolved."
+        return False, "dns", host
     except socket.timeout:
-        return False, "Timed out. A firewall is probably silently dropping the traffic."
+        return False, "timeout", ""
     except ConnectionRefusedError:
-        return False, "Connection refused: nothing is listening there, or a firewall rejects it."
+        return False, "refused", ""
     except OSError as error:
-        return False, str(error)
+        return False, "error", str(error)

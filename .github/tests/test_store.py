@@ -84,6 +84,27 @@ class SecretTests(unittest.TestCase):
             config_store.replace(second)
             self.assertEqual(config_store.get()["delivery"]["relay"]["password"], "hunter2")
 
+    def test_a_stored_secret_can_be_removed_explicitly(self):
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as folder:
+            config_store = store.ConfigStore(Path(folder) / "forwarder.json")
+            config = valid_config()
+            config["dynamic_dns"] = {"cloudflare": {"enabled": True, "api_token": "cf-secret"}}
+            config_store.replace(config)
+            removal = valid_config()
+            removal["dynamic_dns"] = {"cloudflare": {"enabled": False, "api_token": "", "api_token_clear": True}}
+            masked = config_store.replace(removal)
+            self.assertEqual(config_store.get()["dynamic_dns"]["cloudflare"]["api_token"], "")
+            self.assertFalse(masked["dynamic_dns"]["cloudflare"]["api_token_set"])
+
+    def test_errors_carry_a_code_and_parameters_for_translation(self):
+        config = valid_config()
+        config["people"][0]["target"] = "nonsense"
+        with self.assertRaises(ConfigError) as caught:
+            store.normalize(config)
+        self.assertEqual((caught.exception.code, caught.exception.params["target"]), ("target_invalid", "nonsense"))
+
     def test_routes_cover_enabled_people_only(self):
         import tempfile
         from pathlib import Path

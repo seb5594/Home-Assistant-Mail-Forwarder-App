@@ -17,6 +17,7 @@ from typing import Callable
 
 from . import dns, settings
 from .addresses import domain_of, normalize_address
+from .messages import Message
 from .rewrite import ForwardPlan, build_forward_message
 from .spool import Job
 from .store import ConfigStore
@@ -26,9 +27,27 @@ _DIRECT_PORT = 25
 _MAX_DIRECT_HOSTS = 4
 
 
-class DeliveryError(Exception):
-    def __init__(self, message: str, kind: str = TEMPORARY):
-        super().__init__(message)
+class DeliveryError(Message):
+    """A failed attempt. ``kind`` says how to react, ``code`` and ``params`` what to tell the user."""
+
+    texts = {
+        "login_rejected": "The sending service rejected the login: {detail}",
+        "sender_refused": "The sending service does not accept the sender address: {detail}",
+        "starttls_missing": "The server does not offer a required feature: {detail}",
+        "recipient_refused": "The recipient was refused: {detail}",
+        "server_error": "The mail server answered: {detail}",
+        "connection_failed": "The connection failed: {detail}",
+        "no_sender": "No sender address is set. Open the Sending page and fill in 'Sender address'.",
+        "no_relay": "No sending service is configured. Open the Sending page.",
+        "dns_failed": "DNS lookup failed: {detail}",
+        "no_server": "No mail server found.",
+        "direct_login": "Direct sending does not use a login.",
+        "login_ok": "Connected to {host} and logged in.",
+        "unexpected": "Unexpected error: {detail}",
+    }
+
+    def __init__(self, code: str, kind: str = TEMPORARY, **params):
+        super().__init__(code, **params)
         self.kind = kind
 
 
@@ -42,21 +61,22 @@ def classify(error: Exception) -> DeliveryError:
     if isinstance(error, DeliveryError):
         return error
     if isinstance(error, smtplib.SMTPAuthenticationError):
-        return DeliveryError("The sending service rejected the login: " + _response(error), ATTENTION)
+        return DeliveryError("login_rejected", ATTENTION, detail=_response(error))
     if isinstance(error, smtplib.SMTPSenderRefused):
-        return DeliveryError("The sending service does not accept the sender address: " + _response(error), ATTENTION)
+        return DeliveryError("sender_refused", ATTENTION, detail=_response(error))
     if isinstance(error, smtplib.SMTPNotSupportedError):
-        return DeliveryError("The server does not offer a required feature: " + str(error), ATTENTION)
+        return DeliveryError("starttls_missing", ATTENTION, detail=str(error))
     if isinstance(error, smtplib.SMTPRecipientsRefused):
         refusals = "; ".join(f"{who}: {code} {text.decode('utf-8', 'replace')}"
                              for who, (code, text) in error.recipients.items())
         kind = PERMANENT if all(code >= 500 for code, _ in error.recipients.values()) else TEMPORARY
-        return DeliveryError("The recipient was refused: " + refusals[:300], kind)
+        return DeliveryError("recipient_refused", kind, detail=refusals[:300])
     if isinstance(error, smtplib.SMTPResponseException):
-        return DeliveryError(_response(error), PERMANENT if error.smtp_code >= 500 else TEMPORARY)
+        return DeliveryError("server_error", PERMANENT if error.smtp_code >= 500 else TEMPORARY,
+                             detail=_response(error))
     if isinstance(error, (ssl.SSLError, smtplib.SMTPException, socket.timeout, OSError)):
-        return DeliveryError(f"{type(error).__name__}: {error}", TEMPORARY)
-    return DeliveryError(f"Unexpected error: {error}", TEMPORARY)
+        return DeliveryError("connection_failed", TEMPORARY, detail=f"{type(error).__name__}: {error}")
+    return DeliveryError("unexpected", TEMPORARY, detail=str(error))
 
 
 class Deliverer:
@@ -93,18 +113,19 @@ class Deliverer:
         self._send(config, envelope_sender, alias, message.as_bytes(policy=policy.SMTP))
 
     def test_login(self) -> tuple:
-        """(ok, detail) of connecting and logging in to the sending service, without sending."""
+        """(ok, code, params) of connecting and logging in to the sending service, without sending."""
         config = self._store.get()["delivery"]
         if config["mode"] != "relay":
-            return False, "Direct sending does not use a login."
+            return False, "direct_login", {}
         if not config["relay"]["host"]:
-            return False, "Choose a sending service first."
+            return False, "no_relay", {}
         try:
             connection = self._connect_relay(config["relay"])
             connection.quit()
         except Exception as error:  # noqa: BLE001 - every failure is explained to the user
-            return False, str(classify(error))
-        return True, f"Connected to {config['relay']['host']} and logged in."
+            failure = classify(error)
+            return False, failure.code, failure.params
+        return True, "login_ok", {"host": config["relay"]["host"]}
 
     # ---- sender address ----------------------------------------------------------------------
 
@@ -114,8 +135,7 @@ class Deliverer:
             return f"forwarder@{alias_domain}"
         sender = config["sender_address"] or normalize_address(config["relay"]["username"]) or ""
         if not sender:
-            raise DeliveryError("No sender address is set. Open the Sending page and fill in "
-                                "'Sender address'.", ATTENTION)
+            raise DeliveryError("no_sender", ATTENTION)
         return sender
 
     # ---- transport ---------------------------------------------------------------------------
@@ -131,7 +151,7 @@ class Deliverer:
 
     def _connect_relay(self, relay: dict) -> smtplib.SMTP:
         if not relay["host"]:
-            raise DeliveryError("No sending service is configured. Open the Sending page.", ATTENTION)
+            raise DeliveryError("no_relay", ATTENTION)
         timeout, name = settings.SMTP_CLIENT_TIMEOUT_SECONDS, self._hostname()
         context = ssl.create_default_context()
         if relay["security"] == "ssl":
@@ -159,8 +179,8 @@ class Deliverer:
         try:
             hosts = [mx.host for mx in dns.resolve_mx(domain)] or [domain]  # no MX: the domain itself
         except dns.DnsError as error:
-            raise DeliveryError(f"DNS lookup failed: {error}") from error
-        last_error: Exception = DeliveryError("No mail server found.")
+            raise DeliveryError("dns_failed", detail=str(error)) from error
+        last_error: Exception = DeliveryError("no_server")
         for host in hosts[:_MAX_DIRECT_HOSTS]:
             try:
                 connection = smtplib.SMTP(host, _DIRECT_PORT, local_hostname=self._hostname(),

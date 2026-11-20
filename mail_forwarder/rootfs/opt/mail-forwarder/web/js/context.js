@@ -1,6 +1,7 @@
 // State and actions that every view shares. app.js fills in `render` and `navigate`.
 import { api } from './api.js';
 import { h, toast } from './dom.js';
+import { message, t } from './i18n.js';
 
 export const ctx = {
   state: null,
@@ -22,6 +23,12 @@ export async function save(mutator) {
   await refresh();
 }
 
+// The text of an error in the language of the page. Errors from the app carry a code.
+export function errorText(error) {
+  if (error.code === 'unreachable') return t('app.unreachable_text');
+  return error.code ? message('errors', error.code, error.params || {}, error.message) : error.message;
+}
+
 // Runs an async action, shows the error as a toast, and tells the caller whether it worked.
 export async function attempt(action, success) {
   try {
@@ -30,7 +37,7 @@ export async function attempt(action, success) {
     if (success) toast(success);
     return result ?? true;
   } catch (error) {
-    toast(error.message, 'error');
+    toast(errorText(error), 'error');
     return false;
   }
 }
@@ -50,7 +57,7 @@ export function showDialog(content) {
   if (!element.open) element.showModal();
 }
 
-export function confirmDialog({ title, message, confirmLabel = 'Confirm', danger = false }) {
+export function confirmDialog({ title, message: body, confirmLabel, danger = false }) {
   return new Promise((resolve) => {
     const finish = (answer) => {
       closeDialog();
@@ -58,10 +65,10 @@ export function confirmDialog({ title, message, confirmLabel = 'Confirm', danger
     };
     showDialog(h('form', { onsubmit: (event) => { event.preventDefault(); finish(true); } },
       h('h2', null, title),
-      h('p', null, message),
+      h('p', null, body),
       h('div', { class: 'dialog-actions' },
-        h('button', { class: 'button button-quiet', type: 'button', onclick: () => finish(false) }, 'Cancel'),
-        h('button', { class: `button ${danger ? 'button-danger' : ''}`, type: 'submit' }, confirmLabel))));
+        h('button', { class: 'button button-quiet', type: 'button', onclick: () => finish(false) }, t('common.cancel')),
+        h('button', { class: `button ${danger ? 'button-danger' : ''}`, type: 'submit' }, confirmLabel || t('common.save')))));
     dialog().addEventListener('close', () => resolve(false), { once: true });
   });
 }

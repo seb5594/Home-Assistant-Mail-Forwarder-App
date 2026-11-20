@@ -43,7 +43,7 @@ class DiagnosticsTests(unittest.TestCase):
         self.diagnostics = Diagnostics(self.store, self.stats, TestTracker(), mock.Mock())
         self.dns_table = dict(GOOD_DNS)
         self.published = (True, 25)
-        self.reachable = (True, "220 ready")
+        self.reachable = (True, "greeting", "220 ready")
         patches = [
             mock.patch.object(dns, "resolve", lambda n, t: Dns(self.dns_table)(n, t)),
             mock.patch.object(network, "detect_public_ip", lambda force=False: PUBLIC_IP),
@@ -74,26 +74,26 @@ class DiagnosticsTests(unittest.TestCase):
     def test_unpublished_port_is_reported_with_the_fix(self):
         self.published = (True, None)
         check = self.run_checks()["app.port"]
-        self.assertEqual(check["status"], "error")
-        self.assertTrue(any("Network" in step for step in check["fix"]))
+        self.assertEqual((check["status"], check["code"]), ("error", "unpublished"))
+        self.assertEqual(check["guide"], "network")
 
     def test_cloudflare_proxy_is_recognised(self):
         self.dns_table[("mail.example.test", "A")] = ["104.21.5.5"]
         check = self.run_checks()["dns.a.example.test"]
-        self.assertEqual(check["status"], "error")
-        self.assertIn("orange", check["detail"])
+        self.assertEqual((check["status"], check["code"]), ("error", "proxied"))
 
     def test_outdated_ip_in_dns_is_reported(self):
         self.dns_table[("mail.example.test", "A")] = ["192.0.2.1"]
         check = self.run_checks()["dns.a.example.test"]
-        self.assertEqual(check["status"], "error")
-        self.assertIn(PUBLIC_IP, check["detail"])
+        self.assertEqual((check["status"], check["code"]), ("error", "mismatch"))
+        self.assertEqual(check["params"]["ip"], PUBLIC_IP)
+        self.assertEqual(check["params"]["addresses"], "192.0.2.1")
 
     def test_foreign_mx_record_is_an_error(self):
         self.dns_table[("example.test", "MX")] = ["1 route1.mx.cloudflare.net."]
         check = self.run_checks()["dns.mx.example.test"]
-        self.assertEqual(check["status"], "error")
-        self.assertIn("route1.mx.cloudflare.net", check["detail"])
+        self.assertEqual((check["status"], check["code"]), ("error", "wrong"))
+        self.assertIn("route1.mx.cloudflare.net", check["params"]["found"])
 
     def test_missing_mx_record_is_an_error(self):
         del self.dns_table[("example.test", "MX")]
@@ -109,17 +109,17 @@ class DiagnosticsTests(unittest.TestCase):
         self.assertEqual(self.run_checks()["dns.aaaa.example.test"]["status"], "warn")
 
     def test_blocked_sending_port_is_an_error(self):
-        self.reachable = (False, "Timed out. A firewall is probably silently dropping the traffic.")
+        self.reachable = (False, "timeout", "")
         check = self.run_checks()["out.relay"]
-        self.assertEqual(check["status"], "error")
-        self.assertTrue(check["fix"])
+        self.assertEqual((check["status"], check["code"]), ("error", "blocked"))
+        self.assertEqual(check["params"]["probe"], "timeout")
 
     def test_unreachable_dns_is_unknown_not_an_error(self):
         def broken(name, record_type):
             raise dns.DnsError("offline")
         with mock.patch.object(dns, "resolve", broken):
             checks = self.run_checks()
-        self.assertEqual(checks["dns.example.test"]["status"], "unknown")
+        self.assertEqual(checks["dns.error.example.test"]["status"], "unknown")
 
 
 class DnsClientTests(unittest.TestCase):

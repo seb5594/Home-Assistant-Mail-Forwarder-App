@@ -90,12 +90,13 @@ usually fails at Outlook/Hotmail and Gmail.
 
 ## Router and OPNsense
 
-The **Router & network** page contains click-by-click instructions for OPNsense (port forward, DHCP
-reservation, log view for debugging), for the FRITZ!Box and for other routers. The short version:
+The **Router & network** page contains click-by-click instructions for OPNsense (alias, destination NAT rule,
+log view for debugging), for the FRITZ!Box and for other routers. The short version:
 
 * Forward **TCP 25** of your WAN address to the IP of Home Assistant, port 25.
 * Do not use Cloudflare's orange cloud (proxy) for the mail server name: proxies do not forward mail.
 * Remove other MX records of the domain, for example those of Cloudflare Email Routing.
+* If OPNsense (plugin `os-ddclient`) or your router already updates your DNS record, leave the token fields of this app empty. Two updaters for the same record work against each other.
 * If you use GeoIP or block lists in front of WAN, let the big mail providers through.
 
 If port 25 is already used on your Home Assistant, change the host port in the app's **Network**
@@ -113,7 +114,8 @@ tab (for example 2525) and forward to that port instead. The app page shows the 
 | `log_level` | `info` for everyday use, `debug` for troubleshooting |
 
 Everything else is configured in the app page and stored in the app's data folder, so it is part of
-your Home Assistant backups.
+your Home Assistant backups. The app page speaks English and German; it follows the language of your
+browser and can be switched in the footer.
 
 ## Security and privacy
 
@@ -150,6 +152,29 @@ Switch `log_level` to `debug` and read the app log for more detail.
 * No spam or virus filtering of incoming mail. The receiving inbox does that.
 * Bounces of undeliverable forwarded mail are not sent back to the original sender. They appear in
   **Activity**.
+
+## Deutsch
+
+Kurzfassung der Dokumentation. Die App-Seite selbst (**Web-UI öffnen**) ist zweisprachig und folgt der Sprache deines Browsers.
+
+**Was die App macht:** Sie gibt dir Adressen auf deiner eigenen Domain (oder einem kostenlosen DuckDNS-Namen) und leitet alles an ein echtes Postfach weiter, zum Beispiel Gmail, Outlook/Hotmail oder WEB.DE. Es gibt keine Postfächer und keinen Speicherbedarf.
+
+**Der Weg einer Mail:** Absender, dann MX-Eintrag deiner Domain, dann deine öffentliche IP auf Port 25, dann Router (Portweiterleitung), dann Home Assistant, dann diese App, dann Versanddienst (Port 587), dann das echte Postfach.
+
+**Einrichtung in fünf Schritten:**
+
+1. **Domains:** Domain hinzufügen und die angezeigten DNS-Einträge anlegen (A-Eintrag `mail`, bei Cloudflare *nur DNS*, und MX-Eintrag).
+2. **Postfächer:** Personen mit dem echten Postfach und einer oder mehreren Adressen anlegen.
+3. **Versand:** Versanddienst wählen. Gmail oder WEB.DE ist der schnellste Start, Brevo ist die sauberste Lösung mit eigener Domain.
+4. **Router & Netzwerk:** Port 25 an Home Assistant weiterleiten. Für OPNsense, FRITZ!Box und andere Router gibt es Schritt-für-Schritt-Anleitungen.
+5. **Übersicht:** „Testmail senden“ drücken. Wenn alle drei Stufen grün werden, ist alles eingerichtet.
+
+**Wichtig:**
+
+* Mit einer kostenlosen DuckDNS-Domain klappt der Empfang. Zum Senden nimm Gmail oder WEB.DE, weil du bei DuckDNS keine weiteren DNS-Einträge anlegen kannst.
+* Aktualisiert dein Router oder OPNsense (Plugin `os-ddclient`) deinen DNS-Eintrag schon, trage hier **keinen** DuckDNS- oder Cloudflare-Token ein.
+* Bei DS-Lite oder CGNAT sowie bei gesperrtem Port 25 kommt keine Mail an. Die Seite *Router & Netzwerk* erklärt, wie du das prüfst.
+* Liegt deine Domain bei Cloudflare und du brauchst nur wenige Adressen, leitet Cloudflare *Email Routing* kostenlos ohne Heimserver weiter.
 
 ## Questions
 

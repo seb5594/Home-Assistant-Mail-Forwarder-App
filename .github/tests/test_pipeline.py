@@ -105,7 +105,8 @@ class ForwardingTests(PipelineCase):
         self.harness.send("bob@sender.example", ["info@example.test"], MAIL)
         job = wait_for(lambda: next((j for j in self.app.spool.queued() if j.attempts), None))
         self.assertTrue(job.needs_attention)
-        self.assertIn("login", job.last_error)
+        self.assertEqual(job.error_code, "login_rejected")
+        self.assertIn("535", job.error_params["detail"])
         self.assertGreater(job.next_attempt, 0)
         self.assertEqual(self.relay.messages, [])
 
@@ -125,7 +126,7 @@ class ForwardingTests(PipelineCase):
         self.relay.refuse_recipients = ("anna@mailbox.test",)
         self.harness.send("bob@sender.example", ["info@example.test"], MAIL)
         failed = wait_for(lambda: self.app.spool.failed())[0]
-        self.assertIn("refused", failed.last_error)
+        self.assertEqual(failed.error_code, "recipient_refused")
         self.assertEqual(self.app.spool.counts(), {"queued": 0, "failed": 1})
         self.relay.refuse_recipients = ()
         status, _ = self.harness.api("POST", f"/api/queue/{failed.id}/retry")
@@ -139,7 +140,7 @@ class ForwardingTests(PipelineCase):
         self.app.store.replace(config)
         self.harness.send("bob@sender.example", ["info@example.test"], MAIL)
         job = wait_for(lambda: next((j for j in self.app.spool.queued() if j.attempts), None))
-        self.assertIn("Sender address", job.last_error)
+        self.assertEqual(job.error_code, "no_sender")
 
 
 class TestMailTests(PipelineCase):
@@ -162,12 +163,11 @@ class TestMailTests(PipelineCase):
         self.app.store.replace(config)
         self.harness.api("POST", "/api/test-mail", {"address": "info@example.test"})
         wait_for(lambda: self.app.tests.snapshot()["status"] == "failed")
-        self.assertIn("login", self.app.tests.snapshot()["error"])
+        self.assertEqual(self.app.tests.snapshot()["error"]["code"], "login_rejected")
 
     def test_test_mail_needs_one_of_your_addresses(self):
         status, body = self.harness.api("POST", "/api/test-mail", {"address": "stranger@elsewhere.test"})
-        self.assertEqual(status, 400)
-        self.assertIn("own", body["error"])
+        self.assertEqual((status, body["code"]), (400, "test_address"))
 
 
 if __name__ == "__main__":

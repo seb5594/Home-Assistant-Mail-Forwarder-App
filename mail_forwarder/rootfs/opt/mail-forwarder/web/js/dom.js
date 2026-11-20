@@ -1,4 +1,5 @@
 // Tiny DOM helpers. All text goes in as text nodes, so nothing a user types can become markup.
+import { t } from './i18n.js';
 
 export function h(tag, props, ...children) {
   const element = document.createElement(tag);
@@ -60,7 +61,7 @@ export function toast(message, kind = '') {
 export async function copyText(text) {
   try {
     await navigator.clipboard.writeText(text);
-    toast('Copied');
+    toast(t('common.copied'));
   } catch {
     // Clipboard access can be blocked inside the Home Assistant frame; fall back to selecting.
     const field = h('textarea', { style: 'position:fixed;opacity:0' }, text);
@@ -68,7 +69,7 @@ export async function copyText(text) {
     field.select();
     const copied = document.execCommand('copy');
     field.remove();
-    toast(copied ? 'Copied' : 'Select the text and copy it by hand', copied ? '' : 'error');
+    toast(copied ? t('common.copied') : t('common.copy_failed'), copied ? '' : 'error');
   }
 }
 
@@ -76,7 +77,7 @@ export async function copyText(text) {
 export function copyable(text) {
   return h('span', null,
     h('span', { class: 'value' }, text),
-    h('button', { class: 'copy', type: 'button', onclick: () => copyText(text), 'aria-label': `Copy ${text}` }, 'Copy'));
+    h('button', { class: 'copy', type: 'button', onclick: () => copyText(text), 'aria-label': `${t('common.copy')} ${text}` }, t('common.copy')));
 }
 
 export function initialOf(name) {

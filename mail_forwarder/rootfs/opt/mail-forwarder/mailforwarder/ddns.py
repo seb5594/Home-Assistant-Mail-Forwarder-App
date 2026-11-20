@@ -16,6 +16,7 @@ from typing import Optional
 
 from . import network, settings
 from .events import ActivityLog
+from .messages import Message
 from .state import State
 from .store import DUCKDNS_SUFFIX, ConfigStore, mail_host_of
 
@@ -24,8 +25,17 @@ _DUCKDNS_API = "https://www.duckdns.org/update"
 _RECORD_TTL_SECONDS = 120
 
 
-class DdnsError(Exception):
-    """An update failed; the message tells the owner what to check."""
+class DdnsError(Message):
+    """An update failed; the code tells the web interface what the owner should check."""
+
+    texts = {
+        "no_ip": "Your public IP address could not be determined.",
+        "duckdns_refused": "DuckDNS refused the update. Check the token and that the domain belongs to that account.",
+        "duckdns_unreachable": "DuckDNS could not be reached: {detail}",
+        "cf_error": "Cloudflare said: {detail}",
+        "cf_unreachable": "Cloudflare could not be reached: {detail}",
+        "cf_no_zone": "No Cloudflare zone for {host} was found with this token.",
+    }
 
 
 # ---- DuckDNS ---------------------------------------------------------------------------------
@@ -37,9 +47,9 @@ def update_duckdns(token: str, names: list, ip: str) -> None:
         with urllib.request.urlopen(f"{_DUCKDNS_API}?{query}", timeout=15) as response:  # noqa: S310
             answer = response.read(64).decode("ascii", "ignore").strip()
     except OSError as error:
-        raise DdnsError(f"DuckDNS could not be reached: {error}") from error
+        raise DdnsError("duckdns_unreachable", detail=str(error)) from error
     if not answer.startswith("OK"):
-        raise DdnsError("DuckDNS refused the update. Check the token and that the domain belongs to that account.")
+        raise DdnsError("duckdns_refused")
 
 
 # ---- Cloudflare ------------------------------------------------------------------------------
@@ -61,12 +71,12 @@ class CloudflareClient:
             except ValueError:
                 reply = {}
             problem = (reply.get("errors") or [{}])[0].get("message") or f"HTTP {error.code}"
-            hint = " Check that the token may edit DNS of this zone." if error.code in (401, 403) else ""
-            raise DdnsError(f"Cloudflare said: {problem}.{hint}") from error
+            raise DdnsError("cf_error", detail=problem, denied=error.code in (401, 403)) from error
         except (OSError, ValueError) as error:
-            raise DdnsError(f"Cloudflare could not be reached: {error}") from error
+            raise DdnsError("cf_unreachable", detail=str(error)) from error
         if not reply.get("success"):
-            raise DdnsError("Cloudflare said: " + ((reply.get("errors") or [{}])[0].get("message") or "unknown error"))
+            raise DdnsError("cf_error", detail=(reply.get("errors") or [{}])[0].get("message") or "unknown error",
+                            denied=False)
         return reply.get("result")
 
     def zone_id(self, hostname: str) -> str:
@@ -77,7 +87,7 @@ class CloudflareClient:
             zones = self._call("GET", "/zones?" + urllib.parse.urlencode({"name": candidate}))
             if zones:
                 return zones[0]["id"]
-        raise DdnsError(f"No Cloudflare zone for {hostname} was found with this token.")
+        raise DdnsError("cf_no_zone", host=hostname)
 
     def point_to(self, hostname: str, ip: str) -> str:
         """Creates or updates the A record; returns what was done."""
@@ -129,7 +139,8 @@ class DynamicDns:
             try:
                 self.update(force=self._store.generation != self._last_generation)
             except Exception as error:  # noqa: BLE001 - the loop must never die
-                self._events.warning(f"Dynamic DNS update failed unexpectedly: {error}")
+                self._events.warning(f"Dynamic DNS update failed unexpectedly: {error}", "ddns_crashed",
+                                     detail=str(error))
             self._wake.wait(settings.DDNS_INTERVAL_SECONDS)
             self._wake.clear()
 
@@ -140,7 +151,7 @@ class DynamicDns:
             return
         ip = network.detect_public_ip(force=True)
         if ip is None:
-            self._record("all", False, "Your public IP address could not be determined.")
+            self._record("all", False, "no_ip", {})
             return
         if ip == self._state.get("ddns_ip") and not force and self._all_ok():
             return
@@ -150,7 +161,7 @@ class DynamicDns:
         domains = config["domains"]
         if duck["enabled"] and duck["token"]:
             names = [d["name"] for d in domains if d["kind"] == "duckdns"]
-            self._run("duckdns", names, lambda: update_duckdns(duck["token"], names, ip) or "updated", ip)
+            self._run("duckdns", names, lambda: (update_duckdns(duck["token"], names, ip), "updated")[1], ip)
         if cloud["enabled"] and cloud["api_token"]:
             client = CloudflareClient(cloud["api_token"])
             for domain in (d for d in domains if d["kind"] == "own"):
@@ -165,16 +176,18 @@ class DynamicDns:
         try:
             outcome = action()
         except DdnsError as error:
-            self._record(key, False, str(error))
-            self._events.warning(f"Dynamic DNS ({key}): {error}")
+            self._record(key, False, error.code, error.params)
+            self._events.warning(f"Dynamic DNS ({key}): {error}", "ddns_failed", key=key,
+                                 error_code=error.code, error_params=error.params)
             return
-        self._record(key, True, f"{', '.join(hosts)} -> {ip} ({outcome})")
+        self._record(key, True, "done", {"hosts": ", ".join(hosts), "ip": ip, "outcome": outcome})
         if outcome != "unchanged":
-            self._events.info(f"Dynamic DNS: {', '.join(hosts)} now points to {ip}.")
+            self._events.info(f"Dynamic DNS: {', '.join(hosts)} now points to {ip}.", "ddns_updated",
+                              hosts=", ".join(hosts), ip=ip)
 
-    def _record(self, key: str, ok: bool, detail: str) -> None:
+    def _record(self, key: str, ok: bool, code: str, params: dict) -> None:
         with self._lock:
-            self._results[key] = {"ok": ok, "detail": detail, "time": time.time()}
+            self._results[key] = {"ok": ok, "code": code, "params": params, "time": time.time()}
             self._state.set("ddns_results", self._results)
 
     def _all_ok(self) -> bool:

@@ -1,6 +1,14 @@
 // Talks to the app's JSON API. URLs are relative because Home Assistant ingress serves the page
 // below a long, changing path.
 
+export class ApiError extends Error {
+  constructor(message, code = '', params = {}) {
+    super(message);
+    this.code = code;
+    this.params = params;
+  }
+}
+
 async function request(method, path, body) {
   const options = { method, headers: {} };
   if (body !== undefined) {
@@ -14,10 +22,10 @@ async function request(method, path, body) {
   try {
     response = await fetch(path, options);
   } catch {
-    throw new Error('The app does not answer. Is it still running?');
+    throw new ApiError('The app does not answer.', 'unreachable');
   }
   const payload = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(payload.error || `Request failed (${response.status})`);
+  if (!response.ok) throw new ApiError(payload.error || `Request failed (${response.status})`, payload.code, payload.params);
   return payload;
 }
 

@@ -1,7 +1,9 @@
 """The health checks behind the traffic-light list on the overview page.
 
-Each check answers one question a beginner would otherwise have to debug blindly, and every
-check that fails says in plain words what is wrong and what to do about it.
+Each check answers one question a beginner would otherwise have to debug blindly. A check does
+not carry prose: it names what it looked at (``kind``), what it found (``code``) and the values
+involved (``params``). The web interface turns that into a title, an explanation and the steps
+to fix it in the language of the browser (``checks.<kind>.title`` and ``checks.<kind>.<code>.*``).
 """
 import threading
 import time
@@ -20,12 +22,12 @@ GMAIL_MX = "gmail-smtp-in.l.google.com"
 
 @dataclass
 class Check:
-    id: str
+    id: str  # unique, e.g. dns.a.example.com
     group: str  # setup | app | internet | dns | outbound
-    title: str
+    kind: str  # what was examined: the key of the title
     status: str
-    detail: str = ""
-    fix: list = field(default_factory=list)
+    code: str = ""  # what was found: the key of the explanation and the fix steps
+    params: dict = field(default_factory=dict)
     guide: str = ""  # the page of the web interface that explains the fix
 
 
@@ -68,9 +70,9 @@ class Diagnostics:
 
     def check_login(self) -> dict:
         """The explicit 'test login' button: this really connects to the sending service."""
-        ok, detail = self._deliverer.test_login()
+        ok, code, params = self._deliverer.test_login()
         with self._lock:
-            self._login = {"ok": ok, "detail": detail, "time": time.time()}
+            self._login = {"ok": ok, "code": code, "params": params, "time": time.time()}
             return dict(self._login)
 
     def snapshot(self) -> dict:
@@ -90,62 +92,42 @@ class Diagnostics:
             try:
                 items += part(config)
             except Exception as error:  # noqa: BLE001 - one broken group must not hide the others
-                items.append(Check("internal", "app", "A check could not run", WARN, str(error)))
+                items.append(Check("internal", "app", "internal", WARN, "failed", {"detail": str(error)}))
         return items
 
     def _setup_checks(self, config: dict) -> list:
-        delivery = config["delivery"]
+        delivery, relay = config["delivery"], config["delivery"]["relay"]
         has_address = any(p["enabled"] and p["addresses"] for p in config["people"])
-        relay = delivery["relay"]
         sending_ready = delivery["mode"] == "direct" or bool(
             relay["host"] and delivery["sender_address"] and (not relay["username"] or relay["password"]))
         return [
-            Check("setup.domain", "setup", "A domain is added",
-                  OK if config["domains"] else TODO,
-                  "" if config["domains"] else "Mail needs an address to be sent to. Add your domain first.",
-                  guide="domains"),
-            Check("setup.mailbox", "setup", "A person with an address is added",
-                  OK if has_address else TODO,
-                  "" if has_address else "Say who gets the mail: a name, one or more addresses and the real inbox.",
-                  guide="mailboxes"),
-            Check("setup.sending", "setup", "Sending is set up",
-                  OK if sending_ready else TODO,
-                  "" if sending_ready else "Choose how forwarded mail leaves: through a sending service (recommended).",
-                  guide="sending"),
+            Check("setup.domain", "setup", "setup_domain", OK if config["domains"] else TODO,
+                  "ok" if config["domains"] else "todo", guide="domains"),
+            Check("setup.mailbox", "setup", "setup_mailbox", OK if has_address else TODO,
+                  "ok" if has_address else "todo", guide="mailboxes"),
+            Check("setup.sending", "setup", "setup_sending", OK if sending_ready else TODO,
+                  "ok" if sending_ready else "todo", guide="sending"),
         ]
 
     def _app_checks(self, _config: dict) -> list:
-        reachable, detail = network.probe_tcp("127.0.0.1", settings.SMTP_PORT, timeout=3)
-        checks = [Check(
-            "app.listener", "app", "The mail receiver is running",
-            OK if reachable else ERROR,
-            f"Listening on port {settings.SMTP_PORT}." if reachable else detail,
-            [] if reachable else ["Open the app's log tab and look for errors.", "Restart the app."])]
-        known, host_port = supervisor.published_port(settings.SMTP_PORT)
+        port = settings.SMTP_PORT
+        reachable, _, _ = network.probe_tcp("127.0.0.1", port, timeout=3)
+        checks = [Check("app.listener", "app", "app_listener", OK if reachable else ERROR,
+                        "ok" if reachable else "down", {"port": port})]
+        known, host_port = supervisor.published_port(port)
         if not known:
-            checks.append(Check("app.port", "app", "Port 25 is published by Home Assistant", UNKNOWN,
-                                "The Supervisor could not be asked about the port mapping."))
+            checks.append(Check("app.port", "app", "app_port", UNKNOWN, "unknown", {"port": port}))
         elif host_port is None:
-            checks.append(Check(
-                "app.port", "app", "Port 25 is published by Home Assistant", ERROR,
-                f"Container port {settings.SMTP_PORT} is not published, so nothing outside can reach the receiver.",
-                ["Open this app in Home Assistant, go to 'Configuration' and then 'Network'.",
-                 f"Enter {settings.SMTP_PORT} next to '{settings.SMTP_PORT}/tcp' and save.",
-                 "Restart the app."], guide="network"))
+            checks.append(Check("app.port", "app", "app_port", ERROR, "unpublished", {"port": port}, "network"))
         else:
-            checks.append(Check("app.port", "app", "Port 25 is published by Home Assistant", OK,
-                                f"Container port {settings.SMTP_PORT} is reachable on port {host_port} "
-                                "of your Home Assistant computer."))
+            checks.append(Check("app.port", "app", "app_port", OK, "ok", {"port": port, "host_port": host_port}))
         return checks
 
     def _internet_checks(self, _config: dict) -> list:
         ip = network.detect_public_ip(force=True)
         if ip is None:
-            return [Check("net.ip", "internet", "Your public IP address is known", WARN,
-                          "No lookup service answered. Is outbound HTTPS blocked?",
-                          ["Check that this Home Assistant can open websites.",
-                           "Checks that depend on your public IP are skipped until this works."])]
-        return [Check("net.ip", "internet", "Your public IP address is known", OK, ip)]
+            return [Check("net.ip", "internet", "net_ip", WARN, "unknown")]
+        return [Check("net.ip", "internet", "net_ip", OK, "ok", {"ip": ip})]
 
     def _dns_checks(self, config: dict) -> list:
         ip = network.detect_public_ip()
@@ -154,97 +136,67 @@ class Diagnostics:
             try:
                 checks += self._dns_checks_for(domain, ip)
             except dns.DnsError as error:
-                checks.append(Check(f"dns.{domain['name']}", "dns", f"DNS of {domain['name']}", UNKNOWN,
-                                    f"DNS over HTTPS is not reachable: {error}",
-                                    ["Allow outbound HTTPS to cloudflare-dns.com or dns.google."]))
+                checks.append(Check(f"dns.error.{domain['name']}", "dns", "dns_error", UNKNOWN, "unreachable",
+                                    {"domain": domain["name"], "detail": str(error)}))
         return checks
 
     @staticmethod
     def _dns_checks_for(domain: dict, ip: Optional[str]) -> list:
         name, host = domain["name"], mail_host_of(domain)
+        base = {"domain": name, "host": host}
         checks: list = []
         addresses = dns.resolve(host, "A")
-        title = f"{host} points to your home"
+        found = {**base, "addresses": ", ".join(addresses), "ip": ip or ""}
         if not addresses:
-            fix = ["Create an A record for it, or switch on dynamic DNS on the Domains page."]
-            checks.append(Check(f"dns.a.{name}", "dns", title, ERROR, f"{host} has no A record yet.", fix, "domains"))
+            status, code = ERROR, "none"
         elif any(network.is_cloudflare_proxy(a) for a in addresses):
-            checks.append(Check(f"dns.a.{name}", "dns", title, ERROR,
-                                f"{host} is proxied by Cloudflare (orange cloud). A proxy does not forward mail.",
-                                [f"In Cloudflare, open the DNS records of {name}.",
-                                 f"Click the orange cloud next to {host} so that it turns grey ('DNS only')."],
-                                "domains"))
+            status, code = ERROR, "proxied"
         elif ip is None:
-            checks.append(Check(f"dns.a.{name}", "dns", title, UNKNOWN,
-                                f"{host} points to {', '.join(addresses)}; your own IP is unknown."))
+            status, code = UNKNOWN, "unknown_ip"
         elif ip in addresses:
-            checks.append(Check(f"dns.a.{name}", "dns", title, OK, f"{host} -> {ip}"))
+            status, code = OK, "ok"
         else:
-            checks.append(Check(f"dns.a.{name}", "dns", title, ERROR,
-                                f"{host} points to {', '.join(addresses)}, but your public IP is {ip}.",
-                                ["Change the A record to your current IP, or switch on dynamic DNS on the "
-                                 "Domains page so that it follows your IP automatically.",
-                                 "Wait a few minutes after changing it and run the checks again."], "domains"))
+            status, code = ERROR, "mismatch"
+        checks.append(Check(f"dns.a.{name}", "dns", "dns_a", status, code, found, "" if status == OK else "domains"))
         if domain["kind"] == "own":
             checks.append(Diagnostics._mx_check(name, host))
         if dns.resolve(host, "AAAA"):
-            checks.append(Check(f"dns.aaaa.{name}", "dns", f"{host} has no IPv6 address", WARN,
-                                "Senders prefer IPv6 when it exists, and this app is not set up for it.",
-                                ["Delete the AAAA record of this host, or forward port 25 for IPv6 as well."],
-                                "network"))
+            checks.append(Check(f"dns.aaaa.{name}", "dns", "dns_aaaa", WARN, "present", base, "network"))
         return checks
 
     @staticmethod
     def _mx_check(name: str, host: str) -> Check:
-        title = f"{name} tells senders where to deliver (MX)"
+        base = {"domain": name, "host": host}
         exchangers = dns.resolve_mx(name)
         if not exchangers:
-            return Check(f"dns.mx.{name}", "dns", title, ERROR, f"{name} has no MX record.",
-                         [f"Add an MX record for {name} with the mail server {host} and priority 10."], "domains")
+            return Check(f"dns.mx.{name}", "dns", "dns_mx", ERROR, "missing", base, "domains")
         if exchangers[0].host != host:
-            others = ", ".join(f"{mx.host} (priority {mx.priority})" for mx in exchangers)
-            return Check(f"dns.mx.{name}", "dns", title, ERROR,
-                         f"The preferred mail server of {name} is {exchangers[0].host}, not {host}. Found: {others}.",
-                         [f"Remove other MX records of {name}, for example from Cloudflare Email Routing, "
-                          f"and keep only {host}."], "domains")
+            found = ", ".join(f"{mx.host} ({mx.priority})" for mx in exchangers)
+            return Check(f"dns.mx.{name}", "dns", "dns_mx", ERROR, "wrong",
+                         {**base, "first": exchangers[0].host, "found": found}, "domains")
         if len(exchangers) > 1:
-            return Check(f"dns.mx.{name}", "dns", title, WARN,
-                         "More than one MX record exists. Senders fall back to the others when yours is busy.",
-                         ["Remove the extra MX records unless you want them as a backup."], "domains")
-        return Check(f"dns.mx.{name}", "dns", title, OK, f"{name} -> {host}")
+            return Check(f"dns.mx.{name}", "dns", "dns_mx", WARN, "many", base, "domains")
+        return Check(f"dns.mx.{name}", "dns", "dns_mx", OK, "ok", base)
 
     def _outbound_checks(self, config: dict) -> list:
         delivery = config["delivery"]
         if delivery["mode"] == "relay":
             relay = delivery["relay"]
+            params = {"host": relay["host"], "port": relay["port"]}
             if not relay["host"]:
-                return [Check("out.relay", "outbound", "The sending service can be reached", TODO,
-                              "No sending service is chosen yet.", guide="sending")]
-            ok, detail = network.probe_tcp(relay["host"], relay["port"])
-            return [Check("out.relay", "outbound",
-                          f"The sending service can be reached ({relay['host']}:{relay['port']})",
-                          OK if ok else ERROR, detail if ok else detail,
-                          [] if ok else [
-                              f"Your network blocks outbound connections to port {relay['port']}.",
-                              "Allow it in your firewall, or try port 2525 or 465 if your service offers them."],
-                          "" if ok else "sending")]
-        ok, detail = network.probe_tcp(GMAIL_MX, 25)
-        return [Check("out.port25", "outbound", "Outbound port 25 is open", OK if ok else ERROR, detail,
-                      [] if ok else ["Most internet providers and many firewalls block outgoing port 25.",
-                                     "Switch to a sending service on the Sending page: it uses port 587."],
-                      "" if ok else "sending")]
+                return [Check("out.relay", "outbound", "out_relay", TODO, "todo", params, "sending")]
+            ok, probe, detail = network.probe_tcp(relay["host"], relay["port"])
+            return [Check("out.relay", "outbound", "out_relay", OK if ok else ERROR, "ok" if ok else "blocked",
+                          {**params, "probe": probe, "detail": detail}, "" if ok else "sending")]
+        ok, probe, detail = network.probe_tcp(GMAIL_MX, 25)
+        return [Check("out.port25", "outbound", "out_port25", OK if ok else ERROR, "ok" if ok else "blocked",
+                      {"probe": probe, "detail": detail}, "" if ok else "sending")]
 
     def _evidence_checks(self, _config: dict) -> list:
         seen = self._stats.snapshot()["last_outside_connection"]
         if seen:
-            return [Check("in.traffic", "internet", "A mail server from the internet has connected", OK,
-                          f"Last connection from {seen['address']}.")]
-        return [Check(
-            "in.traffic", "internet", "A mail server from the internet has connected", PENDING,
-            "No outside connection to this app has been seen yet. That is normal until your router forwards "
-            "port 25 and someone (or the test button) sends mail.",
-            ["Forward port 25 in your router, see the Network page.", "Then press 'Send test mail' on the overview."],
-            "network")]
+            return [Check("in.traffic", "internet", "in_traffic", OK, "ok", {"address": seen["address"]})]
+        return [Check("in.traffic", "internet", "in_traffic", PENDING, "none", {}, "network")]
 
 
 def _verdict(items: list) -> str:

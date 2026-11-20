@@ -24,7 +24,9 @@ class Job:
     size: int
     attempts: int = 0
     next_attempt: float = 0.0
-    last_error: str = ""
+    last_error: str = ""  # English text, for the log
+    error_code: str = ""  # what the web interface translates
+    error_params: dict = field(default_factory=dict)
     needs_attention: bool = False
     test_token: str = ""
     failed_at: float = 0.0

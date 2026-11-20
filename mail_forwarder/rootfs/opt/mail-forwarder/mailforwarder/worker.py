@@ -67,7 +67,8 @@ class DeliveryWorker:
         else:
             self._spool.complete(job)
             self._stats.forwarded()
-            self._events.info(f"Forwarded a message for {', '.join(job.aliases)} to {job.target}.")
+            self._events.info(f"Forwarded a message for {', '.join(job.aliases)} to {job.target}.",
+                              "forwarded", aliases=", ".join(job.aliases), target=job.target)
             if job.test_token:
                 self._tests.mark(job.test_token, "forwarded")
         finally:
@@ -78,20 +79,24 @@ class DeliveryWorker:
     def _handle_failure(self, job: Job, error: DeliveryError) -> None:
         job.attempts += 1
         job.last_error = str(error)
+        job.error_code, job.error_params = error.code, error.params
         job.needs_attention = error.kind == ATTENTION
         where = f"{', '.join(job.aliases)} -> {job.target}"
+        details = {"aliases": ", ".join(job.aliases), "target": job.target,
+                   "error_code": error.code, "error_params": error.params}
         if error.kind == PERMANENT or job.attempts > len(settings.RETRY_DELAYS_MINUTES):
             self._spool.park(job)
             self._stats.gave_up()
-            self._events.error(f"Gave up on a message ({where}): {error}")
+            self._events.error(f"Gave up on a message ({where}): {error}", "gave_up", **details)
             if job.test_token:
-                self._tests.fail(job.test_token, str(error))
+                self._tests.fail(job.test_token, error)
             return
         minutes = settings.ATTENTION_RETRY_MINUTES if error.kind == ATTENTION \
             else settings.RETRY_DELAYS_MINUTES[job.attempts - 1]
         job.next_attempt = time.time() + minutes * 60
         self._spool.save(job)
         prefix = "Needs your attention" if error.kind == ATTENTION else "Could not forward yet"
-        self._events.warning(f"{prefix} ({where}): {error}. Next try in {minutes} min.")
+        self._events.warning(f"{prefix} ({where}): {error}. Next try in {minutes} min.",
+                             "attention" if error.kind == ATTENTION else "retry_later", minutes=minutes, **details)
         if job.test_token and error.kind == ATTENTION:
-            self._tests.fail(job.test_token, str(error))
+            self._tests.fail(job.test_token, error)

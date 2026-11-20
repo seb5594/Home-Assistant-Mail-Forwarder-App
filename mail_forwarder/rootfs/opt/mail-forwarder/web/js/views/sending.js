@@ -1,8 +1,10 @@
 // Sending: how a forwarded message leaves this app and reaches the real inbox.
 import { api } from '../api.js';
 import { attempt, save } from '../context.js';
+import { describeMessage } from '../checkview.js';
 import { h, icon } from '../dom.js';
 import { allAddresses, timeAgo } from '../format.js';
+import { has, rich, richList, t } from '../i18n.js';
 
 // The form is kept outside the page so that a refresh of the page never wipes what is typed.
 let draft = null;
@@ -19,9 +21,7 @@ function ensureDraft(delivery) {
   }
 }
 
-function field(label, input, hint) {
-  return h('label', { class: 'field' }, label, input, hint ? h('span', { class: 'hint' }, hint) : null);
-}
+const field = (label, input, hint) => h('label', { class: 'field' }, label, input, hint ? h('span', { class: 'hint' }, hint) : null);
 
 function bound(type, key, target, extra = {}) {
   return h('input', { type, value: target[key] ?? '', autocomplete: 'off', autocapitalize: 'none', spellcheck: 'false',
@@ -29,16 +29,16 @@ function bound(type, key, target, extra = {}) {
 }
 
 function modeChoice(ctx) {
-  const options = [
-    ['relay', 'Through a sending service', 'Recommended. Reliable, free for private use, works from any home connection.'],
-    ['direct', 'Directly from here', 'Advanced. Big providers like Gmail and Outlook usually reject or hide mail that comes from a home connection.'],
-  ];
-  return h('div', { class: 'choice-grid' }, options.map(([id, title, text]) =>
+  return h('div', { class: 'choice-grid' }, ['relay', 'direct'].map((id) =>
     h('button', { class: 'choice', type: 'button', 'aria-pressed': String(draft.mode === id), onclick: () => {
       draft.mode = id;
       dirty = true;
       ctx.render(true);
-    } }, h('strong', null, title), h('span', null, text))));
+    } }, h('strong', null, t(`sending.${id}.title`)), h('span', null, t(`sending.${id}.text`)))));
+}
+
+function presetName(preset) {
+  return preset.name || t(`presets.${preset.id}.name`);
 }
 
 function relaySection(state, ctx) {
@@ -49,34 +49,31 @@ function relaySection(state, ctx) {
       draft.relay = { ...draft.relay, preset: item.id, host: item.host, port: item.port, security: item.security };
       dirty = true;
       ctx.render(true);
-    } }, item.name, item.recommended ? ' ★' : '')));
+    } }, presetName(item), item.recommended ? ' ★' : '')));
 
   const security = h('select', { onchange: (event) => { draft.relay.security = event.target.value; dirty = true; } },
-    [['starttls', 'STARTTLS (port 587)'], ['ssl', 'SSL/TLS (port 465)'], ['none', 'None (not recommended)']]
-      .map(([value, label]) => h('option', { value, selected: draft.relay.security === value }, label)));
+    ['starttls', 'ssl', 'none'].map((value) => h('option', { value, selected: draft.relay.security === value }, t(`sending.sec.${value}`))));
 
-  const sender = bound('email', 'sender_address', draft, { placeholder: 'forwarder@your-domain.com' });
   const suggestions = [];
   const firstOwn = state.config.domains.find((d) => d.kind === 'own');
   if (firstOwn) suggestions.push(`forwarder@${firstOwn.name}`);
   if (draft.relay.username.includes('@')) suggestions.push(draft.relay.username);
 
   return h('div', { class: 'stack' },
-    h('h3', null, 'Which service?'), chips,
-    h('div', { class: 'note' }, h('p', null, h('strong', null, preset.name), ': ', preset.summary),
-      preset.needs_own_domain && onlyDuck
-        ? h('p', null, h('strong', null, 'You only have a DuckDNS domain. '), 'This service needs a domain of your own, pick Gmail or WEB.DE instead, or add a domain first.') : null),
-    h('ol', { class: 'how' }, preset.steps.map((step) => h('li', null, step))),
-    preset.website ? h('p', null, h('a', { href: preset.website, target: '_blank', rel: 'noopener' }, `Open ${preset.name}`)) : null,
+    h('h3', null, t('sending.which')), chips,
+    h('div', { class: 'note' }, h('p', null, h('strong', null, presetName(preset)), ': ', t(`presets.${preset.id}.summary`)),
+      preset.needs_own_domain && onlyDuck ? h('p', null, rich('sending.needs_domain')) : null),
+    h('ol', { class: 'how' }, richList(`presets.${preset.id}.steps`).map((nodes) => h('li', null, nodes))),
+    preset.website ? h('p', null, h('a', { href: preset.website, target: '_blank', rel: 'noopener' }, t('sending.open_service', { name: presetName(preset) }))) : null,
     h('div', { class: 'grid grid-2' },
-      field('Server', bound('text', 'host', draft.relay, { placeholder: 'smtp.example.com' })),
-      field('Port', bound('number', 'port', draft.relay)),
-      field('Connection security', security),
-      field(preset.username_label, bound('text', 'username', draft.relay)),
-      field(preset.password_label, bound('password', 'password', draft.relay, {
-        placeholder: state.config.delivery.relay.password_set ? 'Saved, type to replace' : '' }))),
-    field('Sender address', sender, 'Forwarded mail is sent from this address. The sending service must allow it, see the steps above.'),
-    suggestions.length ? h('div', { class: 'row' }, h('span', { class: 'muted small' }, 'Use:'),
+      field(t('sending.server'), bound('text', 'host', draft.relay, { placeholder: 'smtp.example.com' })),
+      field(t('sending.port'), bound('number', 'port', draft.relay)),
+      field(t('sending.security'), security),
+      field(t(`presets.${preset.id}.username`), bound('text', 'username', draft.relay)),
+      field(t(`presets.${preset.id}.password`), bound('password', 'password', draft.relay, {
+        placeholder: state.config.delivery.relay.password_set ? t('sending.password_saved') : '' }))),
+    field(t('sending.sender'), bound('email', 'sender_address', draft, { placeholder: 'forwarder@your-domain.com' }), t('sending.sender_hint')),
+    suggestions.length ? h('div', { class: 'row' }, h('span', { class: 'muted small' }, t('sending.use')),
       [...new Set(suggestions)].map((value) => h('button', { class: 'chip', type: 'button', style: 'border:0;cursor:pointer',
         onclick: () => { draft.sender_address = value; dirty = true; ctx.render(true); } }, value))) : null);
 }
@@ -85,25 +82,23 @@ function directSection(state) {
   const check = state.checks.items.find((item) => item.id === 'out.port25');
   return h('div', { class: 'stack' },
     h('div', { class: 'note warn' },
-      h('p', null, h('strong', null, 'Think twice before using this. '), 'Direct delivery only works when:'),
-      h('ul', { class: 'how' },
-        h('li', null, 'your internet provider does not block outgoing port 25 (many do),'),
-        h('li', null, 'your IP address has a reverse DNS name that matches your mail server name (home connections rarely have one),'),
-        h('li', null, 'the receiving provider does not distrust home IP addresses. Outlook/Hotmail and Gmail often do.'))),
-    check ? h('div', { class: 'row' }, icon(check.status), h('span', null, check.title), h('span', { class: 'muted small' }, check.detail)) : null);
+      h('p', null, h('strong', null, t('sending.direct_warn_title')), ' ', t('sending.direct_warn_intro')),
+      h('ul', { class: 'how' }, richList('sending.direct_warn').map((nodes) => h('li', null, nodes)))),
+    check ? h('div', { class: 'row' }, icon(check.status), h('span', { class: 'muted small' },
+      has(`probe.${check.params.probe}`) ? t(`probe.${check.params.probe}`, check.params) : '')) : null);
 }
 
 function rewriteOption() {
   const input = h('input', { type: 'checkbox', checked: draft.rewrite_from,
     onchange: (event) => { draft.rewrite_from = event.target.checked; dirty = true; } });
-  return h('label', { class: 'switch' }, input, h('span', null, h('strong', null, 'Show the original sender in the name'), h('br'),
-    'Recommended. A forwarded mail cannot truthfully claim to come from the original sender, so strict providers sort it away. With this on, it comes from your sender address as "Anna (anna@example.org)", and Reply still goes to Anna.'));
+  return h('label', { class: 'switch' }, input, h('span', null, h('strong', null, t('sending.rewrite_title')), h('br'), t('sending.rewrite_text')));
 }
 
 function loginResult(state) {
   const login = state.checks.login;
   if (!login) return null;
-  return h('div', { class: 'row' }, icon(login.ok ? 'ok' : 'error'), h('span', null, login.detail), h('span', { class: 'muted small' }, timeAgo(login.time)));
+  return h('div', { class: 'row' }, icon(login.ok ? 'ok' : 'error'), h('span', null, describeMessage('delivery', login)),
+    h('span', { class: 'muted small' }, timeAgo(login.time)));
 }
 
 export function renderSending(ctx) {
@@ -117,24 +112,24 @@ export function renderSending(ctx) {
         mode: draft.mode, sender_address: draft.sender_address, rewrite_from: draft.rewrite_from,
         relay: { ...draft.relay, port: Number(draft.relay.port) || 587 },
       };
-    }), 'Saved');
+    }), t('common.saved'));
     if (saved) dirty = false;
     return saved;
   };
 
   return h('div', { class: 'grid' },
-    h('section', { class: 'card' }, h('h2', null, 'How should forwarded mail be sent?'),
-      h('p', null, 'This app receives mail for your domain and then has to hand it to the inbox of the person. Gmail, Outlook and WEB.DE accept mail from a trusted sending service far more readily than from a home internet connection.'),
+    h('section', { class: 'card' }, h('h2', null, t('sending.mode_title')),
+      h('p', null, t('sending.mode_intro')),
       modeChoice(ctx)),
     h('section', { class: 'card' },
       draft.mode === 'relay' ? relaySection(state, ctx) : directSection(state),
       h('div', { class: 'stack', style: 'margin-top:14px' }, rewriteOption())),
     h('section', { class: 'card stack' },
       h('div', { class: 'row' },
-        h('button', { class: 'button', type: 'button', onclick: persist }, 'Save'),
+        h('button', { class: 'button', type: 'button', onclick: persist }, t('sending.save')),
         draft.mode === 'relay' ? h('button', { class: 'button button-quiet', type: 'button', onclick: async () => {
           if (await persist()) await attempt(() => api.testLogin());
-        } }, 'Save & test login') : null,
-        hasAddresses ? h('button', { class: 'button button-quiet', type: 'button', onclick: () => ctx.navigate('overview') }, 'Go and send a test mail') : null),
+        } }, t('sending.save_test')) : null,
+        hasAddresses ? h('button', { class: 'button button-quiet', type: 'button', onclick: () => ctx.navigate('overview') }, t('sending.go_test')) : null),
       loginResult(state)));
 }

@@ -24,26 +24,24 @@
           <path d="M164 178 H204 M188 160 L206 178 L188 196" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
         <span class="brand-name">Mail Forwarder</span>
-        <span class="badge badge-experimental" title="This app is new and still being tested">Experimental</span>
+        <span class="badge badge-experimental" id="badge-experimental">Experimental</span>
       </div>
       <nav id="nav" class="tabs" aria-label="Sections"></nav>
     </div>
   </header>
 
   <main id="view" class="page" aria-live="polite">
-    <p class="muted">Loading…</p>
+    <p class="muted" id="loading">…</p>
   </main>
 
   <footer class="footer">
     <div class="footer-inner">
-      <p class="footer-version" id="footer-version"></p>
-      <p class="footer-credit">
-        Application developed by seb5594 (Sebastian Schmidt) - Made with <span class="heart" aria-label="love">♥</span> in Germany
-      </p>
-      <div class="footer-buttons">
-        <a class="button button-outline" href="https://github.com/seb5594/Home-Assistant-Apps" target="_blank" rel="noopener">More Home Assistant Apps</a>
-        <a class="button button-outline" href="https://buymeacoffee.com/seb5594" target="_blank" rel="noopener">Support my work ☕</a>
+      <div class="footer-top">
+        <p class="footer-version" id="footer-version"></p>
+        <div class="language-switch" id="language-switch" role="group" aria-label="Language"></div>
       </div>
+      <p class="footer-credit" id="footer-credit"></p>
+      <div class="footer-buttons" id="footer-buttons"></div>
     </div>
   </footer>
 
