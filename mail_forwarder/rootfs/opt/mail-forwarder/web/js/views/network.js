@@ -77,6 +77,22 @@ function connectionCard() {
     h('div', { class: 'note' }, h('p', null, rich('network.conn.cloudflare'))));
 }
 
+// Reading the firewall log: what arrives, and where the port forward sends it.
+function diagnoseCard() {
+  return h('section', { class: 'card' },
+    h('h2', null, t('network.diag.title')),
+    h('p', null, rich('network.diag.intro')),
+    h('ul', { class: 'how' }, [0, 1, 2, 3].map((index) => h('li', null, rich(`network.diag.items.${index}`)))));
+}
+
+// What to do when port 25 cannot be used at all.
+function alternativesCard() {
+  return h('section', { class: 'card' },
+    h('h2', null, t('network.alt.title')),
+    h('p', null, t('network.alt.intro')),
+    h('ul', { class: 'how' }, [0, 1].map((index) => h('li', null, rich(`network.alt.items.${index}`)))));
+}
+
 // Country blocking: the most common reason why mail from Gmail or Outlook never arrives.
 function geoCard(values) {
   const p = { ha: values.haHost, port: values.hostPort };
@@ -148,6 +164,8 @@ export function renderNetwork(ctx) {
     connectionCard(),
     h('section', { class: 'card' }, h('h2', null, t('network.router_title')), tabs, guides[selectedRouter](values)),
     geoCard(values),
+    diagnoseCard(),
+    alternativesCard(),
     h('section', { class: 'card' }, h('h2', null, t('network.verify_title')),
       h('p', null, t('network.verify_text')),
       h('button', { class: 'button', type: 'button', onclick: () => ctx.navigate('overview') }, t('common.go_overview'))));

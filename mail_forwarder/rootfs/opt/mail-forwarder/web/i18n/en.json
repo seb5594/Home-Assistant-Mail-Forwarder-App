@@ -146,7 +146,8 @@
     "The DNS checks above must all be green (MX record and A record).",
     "Port 25 must be forwarded in your router, see the Router & network page.",
     "Some providers block incoming port 25 or hide your connection behind a shared address (CGNAT, DS-Lite). The Router & network page explains how to find out.",
-    "A country block (GeoIP) in front of your router stops mail from abroad, and Gmail and Outlook mostly send from the USA. See the box “Do you block countries?” on the Router & network page."
+    "A country block (GeoIP) in front of your router stops mail from abroad, and Gmail and Outlook mostly send from the USA. See the box “Do you block countries?” on the Router & network page.",
+    "The firewall log shows where the mail goes: the destination of the line has to be your Home Assistant, see “Check where the mail ends up” on the Router & network page."
    ],
    "tips_not_forwarded": [
     "Open the Activity page: it shows why the forwarding failed and when it is tried again."
@@ -878,6 +879,24 @@
    "s5_title": "Optional: you decide who may pass",
    "s5_text": "If you also keep the “Firewall rule: Pass” option in the port forward, OPNsense adds its own rule as well. Once your own rule works you can set “Firewall rule” of the port forward to **Manual**, so that only the rule you control lets mail in.",
    "other": "**Other firewalls and routers:** look for country or GeoIP filters and exempt port 25, or switch the filter off for that one port."
+  },
+  "diag": {
+   "title": "🔍 Check where the mail ends up",
+   "intro": "Before you change rules at random, look at what actually arrives. Open **Firewall ‣ Log Files ‣ Live View**, filter for `dstport is 25` only (other filters flood the list) and let someone send you a mail. A Gmail account is perfect for this.",
+   "items": [
+    "**Nothing shows up at all.** The traffic does not reach OPNsense, or a rule drops it without logging. Run a **Packet Capture** (Interfaces ‣ Diagnostics ‣ Packet Capture, your WAN interface, port 25) while a mail is sent. Packets in the capture but nothing in the log: a rule without logging drops them, switch “Log” on at your country block. Nothing in the capture either: your provider, or a device in front of OPNsense, blocks incoming port 25.",
+    "**A line with the action *block*.** The *Label* names the rule that blocks it. Fix or move that rule, see the box about country blocks.",
+    "**Lines with *rdr* and *pass*.** The mail gets through your firewall. Now read the **destination** of the line: it has to be your Home Assistant. If another device shows up, for example a reverse proxy, the *Redirect Target IP* of the port forward points to the wrong address. Open the rule and the alias it uses.",
+    "**It reaches Home Assistant, but this app sees nothing.** Check the health check “Port 25 is published by Home Assistant” and the *Network* tab of the app."
+   ]
+  },
+  "alt": {
+   "title": "🚧 Cannot open port 25? Alternatives",
+   "intro": "Incoming mail always arrives on port 25. An MX record cannot name another port, and mail does not come to you over HTTPS. If your connection or your network cannot take port 25, let someone else accept the mail for you:",
+   "items": [
+    "**Cloudflare Email Routing (domain at Cloudflare).** Free, needs no port and no router settings. Cloudflare dashboard ‣ your domain ‣ Email ‣ Email Routing: enable it (Cloudflare sets its own MX records, remove other MX records of the domain first), add each real mailbox under *Destination addresses* (every person confirms once by a link), then create one *Routing rule* per address. It only works for domains at Cloudflare, so not for DuckDNS, and this app is not needed for that domain. Do not run both: a domain can only have one set of MX records. Replies go out from the mailbox of the person, not from the new address.",
+    "**A small server on the internet (VPS).** It accepts port 25 and passes it through a VPN tunnel (for example WireGuard) to your Home Assistant, and the MX record points to the VPS. It works with any block, costs a few euros a month and needs some Linux knowledge."
+   ]
   }
  },
  "activity": {
@@ -1016,6 +1035,10 @@
     [
      "The test mail does not arrive and I block countries",
      "Look at the firewall live log for destination port 25. A blocked line from a foreign address means that your country block stops the mail. Make port 25 an exception, see the box “Do you block countries?” on the Router & network page."
+    ],
+    [
+     "Gmail connects (the firewall log shows it) but nothing arrives",
+     "Read the destination in the log line. It has to be your Home Assistant. If it is another device, for example a reverse proxy, the Redirect Target IP of the port forward is wrong, see “Check where the mail ends up” on the Router & network page."
     ]
    ]
   }

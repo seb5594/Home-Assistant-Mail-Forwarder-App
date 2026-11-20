@@ -146,7 +146,8 @@
     "Die DNS-Prüfungen oben müssen alle grün sein (MX- und A-Eintrag).",
     "Port 25 muss im Router weitergeleitet sein, siehe Seite Router & Netzwerk.",
     "Manche Anbieter blockieren eingehenden Port 25 oder verstecken deinen Anschluss hinter einer geteilten Adresse (CGNAT, DS-Lite). Die Seite Router & Netzwerk erklärt, wie du das herausfindest.",
-    "Eine Ländersperre (GeoIP) vor deinem Router stoppt Mails aus dem Ausland, und Gmail und Outlook senden meist aus den USA. Siehe den Kasten „Du blockierst Länder?“ auf der Seite Router & Netzwerk."
+    "Eine Ländersperre (GeoIP) vor deinem Router stoppt Mails aus dem Ausland, und Gmail und Outlook senden meist aus den USA. Siehe den Kasten „Du blockierst Länder?“ auf der Seite Router & Netzwerk.",
+    "Das Firewall-Protokoll zeigt, wohin die Mail geht: Das Ziel der Zeile muss dein Home Assistant sein, siehe „Prüfen, wo die Mail landet“ auf der Seite Router & Netzwerk."
    ],
    "tips_not_forwarded": [
     "Öffne die Seite Aktivität: Dort steht, warum die Weiterleitung scheiterte und wann sie erneut versucht wird."
@@ -878,6 +879,24 @@
    "s5_title": "Optional: Du entscheidest, wer durchkommt",
    "s5_text": "Behältst du in der Portweiterleitung auch „Firewall rule: Pass“, legt OPNsense zusätzlich eine eigene Regel an. Sobald deine eigene Regel funktioniert, kannst du „Firewall rule“ der Portweiterleitung auf **Manual** stellen, damit nur die Regel, die du selbst kontrollierst, Mails hereinlässt.",
    "other": "**Andere Firewalls und Router:** Suche nach Länder- oder GeoIP-Filtern und nimm Port 25 aus, oder schalte den Filter für genau diesen Port ab."
+  },
+  "diag": {
+   "title": "🔍 Prüfen, wo die Mail landet",
+   "intro": "Bevor du Regeln auf Verdacht änderst, sieh nach, was tatsächlich ankommt. Öffne **Firewall ‣ Log Files ‣ Live View**, filtere nur nach `dstport is 25` (weitere Filter überfluten die Liste) und lass dir eine Mail schicken. Ein Gmail-Konto ist dafür ideal.",
+   "items": [
+    "**Es erscheint gar nichts.** Der Verkehr erreicht OPNsense nicht, oder eine Regel verwirft ihn ohne Protokoll. Starte einen **Packet Capture** (Interfaces ‣ Diagnostics ‣ Packet Capture, dein WAN-Interface, Port 25), während eine Mail gesendet wird. Pakete im Mitschnitt, aber nichts im Protokoll: Eine Regel ohne Protokoll verwirft sie, schalte „Log“ an deiner Ländersperre ein. Auch im Mitschnitt nichts: Dein Anbieter oder ein Gerät vor OPNsense blockiert eingehenden Port 25.",
+    "**Eine Zeile mit der Aktion *block*.** Das *Label* nennt die Regel, die blockt. Korrigiere oder verschiebe diese Regel, siehe den Kasten zu Ländersperren.",
+    "**Zeilen mit *rdr* und *pass*.** Die Mail kommt durch deine Firewall. Lies jetzt das **Ziel** der Zeile: Es muss dein Home Assistant sein. Taucht ein anderes Gerät auf, zum Beispiel ein Reverse-Proxy, zeigt das *Redirect Target IP* der Portweiterleitung auf die falsche Adresse. Öffne die Regel und den Alias, den sie nutzt.",
+    "**Sie erreicht Home Assistant, aber diese App sieht nichts.** Prüfe die Gesundheitsprüfung „Port 25 wird von Home Assistant veröffentlicht“ und den Reiter *Netzwerk* der App."
+   ]
+  },
+  "alt": {
+   "title": "🚧 Port 25 lässt sich nicht öffnen? Alternativen",
+   "intro": "Eingehende Mail kommt immer auf Port 25. Ein MX-Eintrag kann keinen anderen Port nennen, und Mail kommt auch nicht per HTTPS zu dir. Kann dein Anschluss oder dein Netz Port 25 nicht annehmen, lass jemand anderen die Mail für dich annehmen:",
+   "items": [
+    "**Cloudflare Email Routing (Domain bei Cloudflare).** Kostenlos, braucht keinen Port und keine Router-Einstellungen. Cloudflare-Dashboard ‣ deine Domain ‣ Email ‣ Email Routing: aktivieren (Cloudflare setzt eigene MX-Einträge, entferne vorher andere MX-Einträge der Domain), jedes echte Postfach unter *Destination addresses* hinzufügen (jede Person bestätigt einmal per Link), dann je Adresse eine *Routing rule* anlegen. Es funktioniert nur für Domains bei Cloudflare, also nicht für DuckDNS, und diese App wird für die Domain nicht gebraucht. Nutze nicht beides: Eine Domain hat nur einen Satz MX-Einträge. Antworten gehen aus dem Postfach der Person, nicht von der neuen Adresse.",
+    "**Ein kleiner Server im Internet (VPS).** Er nimmt Port 25 an und reicht ihn durch einen VPN-Tunnel (zum Beispiel WireGuard) an dein Home Assistant weiter, und der MX-Eintrag zeigt auf den VPS. Das funktioniert bei jeder Sperre, kostet ein paar Euro im Monat und braucht etwas Linux-Kenntnis."
+   ]
   }
  },
  "activity": {
@@ -1016,6 +1035,10 @@
     [
      "Die Testmail kommt nicht an und ich blockiere Länder",
      "Sieh im Live-Protokoll der Firewall nach Zielport 25. Eine blockierte Zeile mit ausländischer Adresse heißt: Deine Ländersperre stoppt die Mail. Mache Port 25 zur Ausnahme, siehe den Kasten „Du blockierst Länder?“ auf der Seite Router & Netzwerk."
+    ],
+    [
+     "Gmail verbindet sich (das Firewall-Protokoll zeigt es), aber nichts kommt an",
+     "Lies das Ziel in der Protokollzeile. Es muss dein Home Assistant sein. Ist es ein anderes Gerät, zum Beispiel ein Reverse-Proxy, stimmt das Redirect Target IP der Portweiterleitung nicht, siehe „Prüfen, wo die Mail landet“ auf der Seite Router & Netzwerk."
     ]
    ]
   }

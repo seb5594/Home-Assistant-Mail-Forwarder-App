@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.11.20.3
+
+* 🔍 New box on the Router & network page: how to read the firewall log (what arrives, and that the destination must be Home Assistant), and the packet capture test for incoming port 25.
+* 🚧 New box with alternatives when port 25 cannot be opened: Cloudflare Email Routing, or a small server that passes port 25 through a VPN tunnel.
+* Help page, test mail tips and documentation point to the destination check.
+
 ## 2026.11.20.2
 
 * 🌍 New box on the Router & network page for people who block countries (GeoIP): mail from Gmail, Outlook and sending services comes from abroad, so port 25 needs an exception. Includes the OPNsense steps for a pass rule above the country block.
