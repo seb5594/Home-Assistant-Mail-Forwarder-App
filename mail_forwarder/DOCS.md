@@ -1,7 +1,5 @@
 # Mail Forwarder
 
-> **Experimental.** The app is new. It works in tests, but has seen little real-world use yet.
-
 Mail Forwarder gives you e-mail addresses on your **own domain** (or a free DuckDNS name) and passes
 everything that arrives there on to a **real inbox** such as Gmail, Outlook/Hotmail or WEB.DE.
 There are no mailboxes to run and no storage to manage: a message is received, forwarded and
@@ -97,10 +95,12 @@ log view for debugging), for the FRITZ!Box and for other routers. The short vers
 * Do not use Cloudflare's orange cloud (proxy) for the mail server name: proxies do not forward mail.
 * Remove other MX records of the domain, for example those of Cloudflare Email Routing.
 * If OPNsense (plugin `os-ddclient`) or your router already updates your DNS record, leave the token fields of this app empty. Two updaters for the same record work against each other.
-* If you use GeoIP or block lists in front of WAN, let the big mail providers through.
+* **Country blocks (GeoIP):** Gmail, Outlook and many sending services send from data centers abroad, mostly in the USA. A rule that only allows Germany stops their mail. Keep the block for everything else and add a pass rule for port 25 above it. The **Router & network** page shows the steps for OPNsense.
 
 If port 25 is already used on your Home Assistant, change the host port in the app's **Network**
 tab (for example 2525) and forward to that port instead. The app page shows the right number.
+
+> **Port 25 cannot be opened?** The Router & network page explains how to check what arrives (firewall log, packet capture) and names the alternatives: Cloudflare Email Routing for domains at Cloudflare, or a small server that passes port 25 through a VPN tunnel. Mail cannot be moved to another port or to HTTPS.
 
 > **Do you even need this app?** If your domain is on Cloudflare and you only need a few addresses,
 > Cloudflare's free *Email Routing* forwards mail without any home server, port or router setting.
@@ -140,6 +140,8 @@ browser and can be switched in the footer.
 | "Needs your attention" in Activity | A setting is wrong, usually the login or sender address of the sending service. The message stays queued and goes out after you fix it |
 | Mail arrives in spam | Normal for the first message of a sender. Authenticate your domain at the sending service, and use an address of that domain as sender |
 | Mail is refused as "No such user" | The address is not added under **Mailboxes**, or the person is switched off |
+| Gmail connects (firewall log) but nothing arrives | Read the destination in the log line: it has to be your Home Assistant. Another device means the Redirect Target IP of the port forward is wrong |
+| Test mail does not arrive and you block countries | The country block stops mail from abroad. Make port 25 an exception, see *Router and OPNsense* |
 | Works for some senders only | Another MX record on the domain still points elsewhere |
 
 Switch `log_level` to `debug` and read the app log for more detail.
@@ -148,7 +150,7 @@ Switch `log_level` to `debug` and read the app log for more detail.
 
 * IPv4 only. Remove `AAAA` records of the mail server name, or forward IPv6 port 25 as well.
 * Messages up to 25 MB.
-* One inbox per person. Several people cannot share one address.
+* One address belongs to one person. A person can have up to ten inboxes, each gets its own copy.
 * No spam or virus filtering of incoming mail. The receiving inbox does that.
 * Bounces of undeliverable forwarded mail are not sent back to the original sender. They appear in
   **Activity**.
@@ -173,6 +175,8 @@ Kurzfassung der Dokumentation. Die App-Seite selbst (**Web-UI öffnen**) ist zwe
 
 * Mit einer kostenlosen DuckDNS-Domain klappt der Empfang. Zum Senden nimm Gmail oder WEB.DE, weil du bei DuckDNS keine weiteren DNS-Einträge anlegen kannst.
 * Aktualisiert dein Router oder OPNsense (Plugin `os-ddclient`) deinen DNS-Eintrag schon, trage hier **keinen** DuckDNS- oder Cloudflare-Token ein.
+* Stelle fest, wo die Mail landet: Im Firewall-Protokoll (Live View, Zielport 25) muss das Ziel der Zeile dein Home Assistant sein. Taucht ein anderes Gerät auf, stimmt das Redirect Target IP der Portweiterleitung nicht. Bei gesperrtem Port 25 hilft Cloudflare Email Routing (nur Domains bei Cloudflare) oder ein kleiner Server, der Port 25 durch einen VPN-Tunnel reicht.
+* Blockierst du Länder (GeoIP, zum Beispiel „nur Deutschland“), wird auch Mail aus dem Ausland geblockt, und Gmail und Outlook senden meist aus den USA. Lass die Sperre für alles andere bestehen und lege eine Pass-Regel für Port 25 darüber an, die Seite *Router & Netzwerk* zeigt die Schritte für OPNsense.
 * Bei DS-Lite oder CGNAT sowie bei gesperrtem Port 25 kommt keine Mail an. Die Seite *Router & Netzwerk* erklärt, wie du das prüfst.
 * Liegt deine Domain bei Cloudflare und du brauchst nur wenige Adressen, leitet Cloudflare *Email Routing* kostenlos ohne Heimserver weiter.
 

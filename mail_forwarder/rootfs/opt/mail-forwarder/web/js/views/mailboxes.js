@@ -18,13 +18,28 @@ function addressRow(entry, domains, onRemove) {
 function personDialog(person) {
   const { config } = shared.state;
   const isNew = !person;
-  const draft = person ? structuredClone(person) : { name: '', target: '', enabled: true, addresses: [{ local: '', domain: config.domains[0].name }] };
+  const draft = person ? structuredClone(person) : { name: '', targets: [''], enabled: true, addresses: [{ local: '', domain: config.domains[0].name }] };
   const error = h('p', { class: 'error-text', role: 'alert' });
   const rows = h('div', { class: 'stack' });
   const name = h('input', { type: 'text', value: draft.name, placeholder: t('mailboxes.name_placeholder'), maxlength: 60, autocomplete: 'off' });
-  const target = h('input', { type: 'email', value: draft.target, placeholder: 'max@gmail.com', autocomplete: 'off',
-    autocapitalize: 'none', spellcheck: 'false' });
+  const targetRows = h('div', { class: 'stack' });
   const enabled = h('input', { type: 'checkbox', checked: draft.enabled });
+
+  const collectTargets = () => {
+    draft.targets = [...targetRows.querySelectorAll('[data-role="target"]')].map((input) => input.value.trim());
+  };
+  const drawTargets = () => {
+    targetRows.replaceChildren(...draft.targets.map((value, index) => h('div', { class: 'row target-row' },
+      h('input', { type: 'email', value, placeholder: 'max@gmail.com', autocomplete: 'off', autocapitalize: 'none',
+        spellcheck: 'false', 'data-role': 'target', 'aria-label': t('mailboxes.target_label') }),
+      draft.targets.length > 1 ? h('button', { class: 'button button-quiet button-small', type: 'button',
+        'aria-label': t('mailboxes.remove_target'), onclick: () => {
+          collectTargets();
+          draft.targets.splice(index, 1);
+          drawTargets();
+        } }, t('common.remove')) : null)));
+  };
+  drawTargets();
 
   const collect = () => {
     draft.addresses = [...rows.querySelectorAll('[data-role="address"]')].map((row) => ({
@@ -49,7 +64,8 @@ function personDialog(person) {
       error.textContent = t('errors.need_address');
       return;
     }
-    const result = { ...draft, name: name.value.trim(), target: target.value.trim(), enabled: enabled.checked, addresses };
+    collectTargets();
+    const result = { ...draft, name: name.value.trim(), targets: draft.targets, enabled: enabled.checked, addresses };
     try {
       await save((cfg) => {
         if (isNew) cfg.people.push(result);
@@ -64,7 +80,14 @@ function personDialog(person) {
   showDialog(h('form', { onsubmit: submit },
     h('h2', null, isNew ? t('mailboxes.dialog_add') : t('mailboxes.dialog_edit', { name: person.name })),
     h('label', { class: 'field' }, t('mailboxes.name'), name, h('span', { class: 'hint' }, t('mailboxes.name_hint'))),
-    h('label', { class: 'field' }, t('mailboxes.target'), target, h('span', { class: 'hint' }, t('mailboxes.target_hint'))),
+    h('div', { class: 'stack' }, h('strong', null, t('mailboxes.target')),
+      h('span', { class: 'hint muted small' }, t('mailboxes.target_hint')),
+      targetRows,
+      h('div', null, h('button', { class: 'button button-quiet button-small', type: 'button', onclick: () => {
+        collectTargets();
+        draft.targets.push('');
+        drawTargets();
+      } }, t('mailboxes.add_target')))),
     h('div', { class: 'stack' }, h('strong', null, t('mailboxes.addresses')),
       h('span', { class: 'hint muted small' }, t('mailboxes.addresses_hint')),
       rows,
@@ -88,14 +111,16 @@ async function removePerson(person) {
 }
 
 function personCard(person) {
-  const provider = providerOf(person.target);
   const firstAddress = person.addresses[0];
   const first = firstAddress ? `${firstAddress.local}@${firstAddress.domain}` : '';
   return h('section', { class: `card person ${person.enabled ? '' : 'off'}` },
     h('div', { class: 'person-head' }, h('div', { class: 'avatar' }, initialOf(person.name)),
       h('div', null, h('h3', null, person.name),
-        h('div', { class: 'muted' }, `${t('mailboxes.forwards_to')} `, h('strong', null, person.target),
-          provider ? h('span', { class: 'badge badge-info', style: 'margin-left:6px' }, provider) : null)),
+        h('div', { class: 'muted' }, `${t('mailboxes.forwards_to')} `, person.targets.map((target, index) => {
+          const provider = providerOf(target);
+          return h('span', { class: 'target' }, index ? ', ' : '', h('strong', null, target),
+            provider ? h('span', { class: 'badge badge-info', style: 'margin-left:6px' }, provider) : null);
+        }))),
       h('span', { class: 'spacer' }),
       person.enabled ? null : h('span', { class: 'badge badge-err' }, t('mailboxes.switched_off'))),
     h('div', { class: 'row' }, person.addresses.map((a) => h('span', { class: 'chip' }, `${a.local}@${a.domain}`)),

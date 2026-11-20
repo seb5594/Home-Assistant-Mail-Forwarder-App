@@ -8,6 +8,7 @@ import { pairs, rich, richText, t } from '../i18n.js';
 let selectedRouter = 'opnsense';
 
 const ROUTERS = ['opnsense', 'fritzbox', 'other'];
+const GEO_ROWS = ['action', 'interface', 'direction', 'version', 'protocol', 'source', 'destination', 'port', 'log', 'description'];
 const OPNSENSE_ROWS = ['interface', 'version', 'protocol', 'src_invert', 'src_address', 'src_port', 'dst_invert',
   'dst_address', 'dst_port', 'redirect_ip', 'redirect_port', 'log', 'rule'];
 
@@ -76,6 +77,49 @@ function connectionCard() {
     h('div', { class: 'note' }, h('p', null, rich('network.conn.cloudflare'))));
 }
 
+// Reading the firewall log: what arrives, and where the port forward sends it.
+function diagnoseCard() {
+  return h('section', { class: 'card' },
+    h('h2', null, t('network.diag.title')),
+    h('p', null, rich('network.diag.intro')),
+    h('ul', { class: 'how' }, [0, 1, 2, 3].map((index) => h('li', null, rich(`network.diag.items.${index}`)))));
+}
+
+// What to do when port 25 cannot be used at all.
+function alternativesCard() {
+  return h('section', { class: 'card' },
+    h('h2', null, t('network.alt.title')),
+    h('p', null, t('network.alt.intro')),
+    h('ul', { class: 'how' }, [0, 1].map((index) => h('li', null, rich(`network.alt.items.${index}`)))));
+}
+
+// Country blocking: the most common reason why mail from Gmail or Outlook never arrives.
+function geoCard(values) {
+  const p = { ha: values.haHost, port: values.hostPort };
+  const rows = GEO_ROWS.map((key) => {
+    const [name, value] = pairs(`network.geo.rows.${key}`);
+    return [name, richText(value, p)];
+  });
+  const text = (key) => rich(`network.geo.${key}`, p);
+  return h('section', { class: 'card' },
+    h('h2', null, t('network.geo.title')),
+    h('p', null, t('network.geo.intro')),
+    h('div', { class: 'note' }, h('p', null, t('network.geo.safe'))),
+    h('h3', null, t('network.geo.options_title')),
+    h('ul', { class: 'how' }, [0, 1].map((index) => h('li', null, rich(`network.geo.options.${index}`)))),
+    h('h3', { style: 'margin-top:14px' }, t('network.geo.opn_title')),
+    h('ol', { class: 'how' },
+      step(t('network.geo.s1_title'), text('s1_text')),
+      step(t('network.geo.s2_title'), text('s2_text'))),
+    settingsTable(rows),
+    h('p', { class: 'muted small' }, text('s2_note')),
+    h('ol', { class: 'how', start: 3 },
+      step(t('network.geo.s3_title'), text('s3_text')),
+      step(t('network.geo.s4_title'), text('s4_text')),
+      step(t('network.geo.s5_title'), text('s5_text'))),
+    h('div', { class: 'note' }, h('p', null, text('other'))));
+}
+
 function richTextAt(key) {
   return rich(key);
 }
@@ -119,6 +163,9 @@ export function renderNetwork(ctx) {
       h('ol', { class: 'how' }, [0, 1, 2].map((index) => h('li', null, rich(`network.publish.steps.${index}`))))) : null,
     connectionCard(),
     h('section', { class: 'card' }, h('h2', null, t('network.router_title')), tabs, guides[selectedRouter](values)),
+    geoCard(values),
+    diagnoseCard(),
+    alternativesCard(),
     h('section', { class: 'card' }, h('h2', null, t('network.verify_title')),
       h('p', null, t('network.verify_text')),
       h('button', { class: 'button', type: 'button', onclick: () => ctx.navigate('overview') }, t('common.go_overview'))));

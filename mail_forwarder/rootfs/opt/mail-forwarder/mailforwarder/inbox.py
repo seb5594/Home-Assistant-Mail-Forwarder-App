@@ -40,8 +40,8 @@ class Inbox:
         by_target: dict = {}
         for address in recipients:
             route = self.lookup(address)
-            if route is not None:
-                by_target.setdefault(route.target, []).append(address)
+            for target in route.targets if route is not None else ():
+                by_target.setdefault(target, []).append(address)
 
         token = self._test_token(raw)
         jobs: list = []

@@ -14,7 +14,7 @@ COPY rootfs/ /
 RUN chmod a+x /usr/bin/mail-forwarder-health \
     && find /etc/s6-overlay/s6-rc.d -type f \( -name run -o -name finish \) -exec chmod a+x {} +
 
-ARG BUILD_VERSION=2026.11.20.1
+ARG BUILD_VERSION=2026.11.20.4
 ARG BUILD_ARCH=amd64
 RUN mkdir -p /etc/mail-forwarder && echo "${BUILD_VERSION}" >/etc/mail-forwarder/version
 LABEL io.hass.version="${BUILD_VERSION}" \

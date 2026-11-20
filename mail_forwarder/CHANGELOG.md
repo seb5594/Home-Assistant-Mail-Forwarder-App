@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026.11.20.4
+
+* ✅ The app is no longer marked as experimental.
+* 📬 A person can have **several inboxes**: every mail to their addresses goes to all of them, each inbox gets its own copy. Existing configurations keep working.
+* 🧭 The header of the app page puts the name and the tabs in one line, aligned with the content.
+* 💡 More answers on the Help page: sending from the new address with Gmail “Send mail as”, junk folders at Outlook/Hotmail, leftovers that make DNS look right while mail still does not arrive, and sender problems at the sending service.
+
+## 2026.11.20.3
+
+* 🔍 New box on the Router & network page: how to read the firewall log (what arrives, and that the destination must be Home Assistant), and the packet capture test for incoming port 25.
+* 🚧 New box with alternatives when port 25 cannot be opened: Cloudflare Email Routing, or a small server that passes port 25 through a VPN tunnel.
+* Help page, test mail tips and documentation point to the destination check.
+
+## 2026.11.20.2
+
+* 🌍 New box on the Router & network page for people who block countries (GeoIP): mail from Gmail, Outlook and sending services comes from abroad, so port 25 needs an exception. Includes the OPNsense steps for a pass rule above the country block.
+* The test mail tips, the health check for incoming connections, the Help page and the documentation mention country blocks as a reason why mail does not arrive.
+
 ## 2026.11.20.1
 
 * 🌍 The app page is now available in English and German. The language follows the browser and can be switched in the footer.

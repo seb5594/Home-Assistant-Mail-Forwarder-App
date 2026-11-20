@@ -89,7 +89,7 @@ function checksCard(state, ctx) {
 function testResult(test, state) {
   const person = state.config.people.find((p) => p.addresses.some((a) => `${a.local}@${a.domain}` === test.alias));
   if (test.status === 'ok') {
-    return h('div', { class: 'note' }, h('p', null, t('overview.test.ok', { target: person?.target || t('overview.test.the_mailbox') })));
+    return h('div', { class: 'note' }, h('p', null, t('overview.test.ok', { target: person?.targets.join(', ') || t('overview.test.the_mailbox') })));
   }
   if (test.status === 'failed') {
     return h('div', { class: 'note warn' },
