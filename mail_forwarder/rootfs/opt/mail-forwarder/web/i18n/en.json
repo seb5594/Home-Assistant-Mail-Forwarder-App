@@ -145,7 +145,8 @@
    "tips_not_arrived": [
     "The DNS checks above must all be green (MX record and A record).",
     "Port 25 must be forwarded in your router, see the Router & network page.",
-    "Some providers block incoming port 25 or hide your connection behind a shared address (CGNAT, DS-Lite). The Router & network page explains how to find out."
+    "Some providers block incoming port 25 or hide your connection behind a shared address (CGNAT, DS-Lite). The Router & network page explains how to find out.",
+    "A country block (GeoIP) in front of your router stops mail from abroad, and Gmail and Outlook mostly send from the USA. See the box “Do you block countries?” on the Router & network page."
    ],
    "tips_not_forwarded": [
     "Open the Activity page: it shows why the forwarding failed and when it is tried again."
@@ -327,6 +328,7 @@
     "detail": "No outside connection to this app has been seen yet. That is normal until your router forwards port 25 and someone (or the test button) sends mail.",
     "fix": [
      "Forward port 25 in your router, see the Router & network page.",
+     "If you block countries (GeoIP), make port 25 an exception, see the Router & network page.",
      "Then press “Send test mail” on the Overview."
     ]
    }
@@ -743,7 +745,7 @@
    "s5_title": "Save and apply",
    "s5_text": "Press **Save**, then **Apply changes** at the top of the list. Without applying, nothing happens.",
    "s6_title": "Check what guards your WAN",
-   "s6_text": "Mail servers all over the world connect to you. If you use country blocking (GeoIP), CrowdSec, Zenarmor or an IP block list in front of WAN, make sure they do not drop the big mail providers, which mostly sit in the USA.",
+   "s6_text": "Mail servers all over the world connect to you, and the big providers sit mostly in the USA. If you use country blocking (GeoIP), CrowdSec, Zenarmor or an IP block list in front of WAN, make an exception for port 25, see the box “Do you block countries?” above.",
    "s7_title": "Allow Home Assistant to go out",
    "s7_text": "If you restrict outgoing traffic of the Home Assistant network, allow TCP to your sending service (usually port 587) and HTTPS (port 443). The app uses 443 for DNS checks and to find your public IP.",
    "s8_title": "Watch the log while you test",
@@ -811,6 +813,71 @@
     ]
    ],
    "note": "Also give the Home Assistant computer a fixed address in the router (DHCP reservation), so that the rule keeps pointing at it."
+  },
+  "geo": {
+   "title": "🌍 Do you block countries? Then mail from abroad is blocked too",
+   "intro": "Mail servers of Gmail, Outlook/Hotmail and many sending services do not sit in Germany. Google and Microsoft send from data centers all over the world, mostly in the USA. A rule like “only allow incoming traffic from Germany” therefore blocks exactly the mail you want, and your own test mail can be stopped as well when it comes from a data center abroad.",
+   "safe": "Opening port 25 to the world is less risky than it sounds: the app only accepts mail for the addresses you added, refuses everything else during the conversation, never relays mail for strangers and runs no other service on that port.",
+   "options_title": "Two ways to handle it",
+   "options": [
+    "**Recommended: make port 25 an exception.** Keep your country block for everything else and add one pass rule for port 25 *above* it. The steps are below.",
+    "**Stricter: allow only the big mail providers.** This needs lists of their address ranges, which change over time. It is a lot of upkeep and easy to get wrong, so it is only worth it if you know OPNsense aliases well."
+   ],
+   "opn_title": "OPNsense: a pass rule for port 25 above the country block",
+   "s1_title": "Find out which rule blocks the mail",
+   "s1_text": "Open **Firewall ‣ Log Files ‣ Live View**, filter for destination port 25 and send the test mail. The blocked line shows which rule stops it (click the *i* at the line). That is your country block.",
+   "s2_title": "Add a pass rule for port 25",
+   "s2_text": "Open **Firewall ‣ Rules ‣ WAN**, click **+** and fill in:",
+   "rows": {
+    "action": [
+     "Action",
+     "**Pass**"
+    ],
+    "interface": [
+     "Interface",
+     "WAN"
+    ],
+    "direction": [
+     "Direction",
+     "in"
+    ],
+    "version": [
+     "TCP/IP Version",
+     "IPv4"
+    ],
+    "protocol": [
+     "Protocol",
+     "TCP"
+    ],
+    "source": [
+     "Source",
+     "any (this is the point: the sender can be anywhere)"
+    ],
+    "destination": [
+     "Destination",
+     "the alias of Home Assistant (for example HassOS)"
+    ],
+    "port": [
+     "Destination port range",
+     "SMTP (25), or your port alias if you use another host port"
+    ],
+    "log": [
+     "Log",
+     "on while you test"
+    ],
+    "description": [
+     "Description",
+     "Mail Forwarder: mail from anywhere"
+    ]
+   },
+   "s2_note": "Why the Home Assistant address as destination: the port forward is translated first, so the firewall rules see the address of Home Assistant and the target port, not your WAN address.",
+   "s3_title": "Move it above the country block",
+   "s3_text": "Rules are checked from top to bottom and the first match wins. Drag the new rule **above** the rule that blocks the countries, then press **Save** and **Apply changes**.",
+   "s4_title": "Test again",
+   "s4_text": "Send the test mail once more. The Live View now shows a pass for port 25, while all other ports stay behind your country block. Switch the “Log” option off when it works.",
+   "s5_title": "Optional: you decide who may pass",
+   "s5_text": "If you also keep the “Firewall rule: Pass” option in the port forward, OPNsense adds its own rule as well. Once your own rule works you can set “Firewall rule” of the port forward to **Manual**, so that only the rule you control lets mail in.",
+   "other": "**Other firewalls and routers:** look for country or GeoIP filters and exempt port 25, or switch the filter off for that one port."
   }
  },
  "activity": {
@@ -916,6 +983,10 @@
     [
      "Is it safe to open port 25?",
      "The app only accepts mail for addresses you added and refuses everything else, it is no open relay. Scanners will knock on the port anyway, keep the app updated."
+    ],
+    [
+     "I only allow traffic from Germany. Is that a problem?",
+     "Yes. Gmail, Outlook and many sending services send from data centers abroad, so a country block stops their mail. Keep the block for everything else and add a pass rule for port 25 above it, the Router & network page shows how."
     ]
    ]
   },
@@ -941,6 +1012,10 @@
     [
      "Works for some senders only",
      "Another MX record of the domain still points elsewhere, or the mail server name has an IPv6 (AAAA) record."
+    ],
+    [
+     "The test mail does not arrive and I block countries",
+     "Look at the firewall live log for destination port 25. A blocked line from a foreign address means that your country block stops the mail. Make port 25 an exception, see the box “Do you block countries?” on the Router & network page."
     ]
    ]
   }

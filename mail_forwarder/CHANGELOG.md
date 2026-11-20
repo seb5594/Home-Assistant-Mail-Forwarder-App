@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.11.20.2
+
+* 🌍 New box on the Router & network page for people who block countries (GeoIP): mail from Gmail, Outlook and sending services comes from abroad, so port 25 needs an exception. Includes the OPNsense steps for a pass rule above the country block.
+* The test mail tips, the health check for incoming connections, the Help page and the documentation mention country blocks as a reason why mail does not arrive.
+
 ## 2026.11.20.1
 
 * 🌍 The app page is now available in English and German. The language follows the browser and can be switched in the footer.

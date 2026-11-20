@@ -145,7 +145,8 @@
    "tips_not_arrived": [
     "Die DNS-Prüfungen oben müssen alle grün sein (MX- und A-Eintrag).",
     "Port 25 muss im Router weitergeleitet sein, siehe Seite Router & Netzwerk.",
-    "Manche Anbieter blockieren eingehenden Port 25 oder verstecken deinen Anschluss hinter einer geteilten Adresse (CGNAT, DS-Lite). Die Seite Router & Netzwerk erklärt, wie du das herausfindest."
+    "Manche Anbieter blockieren eingehenden Port 25 oder verstecken deinen Anschluss hinter einer geteilten Adresse (CGNAT, DS-Lite). Die Seite Router & Netzwerk erklärt, wie du das herausfindest.",
+    "Eine Ländersperre (GeoIP) vor deinem Router stoppt Mails aus dem Ausland, und Gmail und Outlook senden meist aus den USA. Siehe den Kasten „Du blockierst Länder?“ auf der Seite Router & Netzwerk."
    ],
    "tips_not_forwarded": [
     "Öffne die Seite Aktivität: Dort steht, warum die Weiterleitung scheiterte und wann sie erneut versucht wird."
@@ -327,6 +328,7 @@
     "detail": "Von außen hat sich noch niemand mit dieser App verbunden. Das ist normal, bis dein Router Port 25 weiterleitet und jemand (oder der Testknopf) Mail sendet.",
     "fix": [
      "Leite Port 25 in deinem Router weiter, siehe Seite Router & Netzwerk.",
+     "Blockierst du Länder (GeoIP), mache Port 25 zur Ausnahme, siehe Seite Router & Netzwerk.",
      "Drücke dann in der Übersicht „Testmail senden“."
     ]
    }
@@ -743,7 +745,7 @@
    "s5_title": "Speichern und übernehmen",
    "s5_text": "Drücke **Save**, dann oben in der Liste **Apply changes**. Ohne Übernehmen passiert nichts.",
    "s6_title": "Prüfe, was dein WAN bewacht",
-   "s6_text": "Mailserver aus der ganzen Welt verbinden sich mit dir. Nutzt du Ländersperren (GeoIP), CrowdSec, Zenarmor oder eine IP-Sperrliste vor dem WAN, achte darauf, dass sie die großen Mailanbieter nicht verwerfen, die meist in den USA sitzen.",
+   "s6_text": "Mailserver aus der ganzen Welt verbinden sich mit dir, und die großen Anbieter sitzen meist in den USA. Nutzt du Ländersperren (GeoIP), CrowdSec, Zenarmor oder eine IP-Sperrliste vor dem WAN, mache eine Ausnahme für Port 25, siehe oben den Kasten „Du blockierst Länder?“.",
    "s7_title": "Home Assistant das Rausgehen erlauben",
    "s7_text": "Wenn du den ausgehenden Verkehr des Home-Assistant-Netzes einschränkst, erlaube TCP zu deinem Versanddienst (meist Port 587) und HTTPS (Port 443). Die App nutzt 443 für DNS-Prüfungen und um deine öffentliche IP zu finden.",
    "s8_title": "Beim Testen das Protokoll beobachten",
@@ -811,6 +813,71 @@
     ]
    ],
    "note": "Gib dem Home-Assistant-Rechner im Router außerdem eine feste Adresse (DHCP-Reservierung), damit die Regel weiter auf ihn zeigt."
+  },
+  "geo": {
+   "title": "🌍 Du blockierst Länder? Dann wird auch Mail aus dem Ausland geblockt",
+   "intro": "Mailserver von Gmail, Outlook/Hotmail und vielen Versanddiensten stehen nicht in Deutschland. Google und Microsoft senden aus Rechenzentren auf der ganzen Welt, meist in den USA. Eine Regel wie „nur eingehenden Verkehr aus Deutschland erlauben“ blockiert deshalb genau die Mails, die du willst, und auch deine eigene Testmail kann gestoppt werden, wenn sie aus einem Rechenzentrum im Ausland kommt.",
+   "safe": "Port 25 für die ganze Welt zu öffnen ist weniger riskant, als es klingt: Die App nimmt nur Mails für Adressen an, die du angelegt hast, lehnt alles andere schon im Gespräch ab, leitet nie Mails für Fremde weiter und betreibt auf dem Port keinen anderen Dienst.",
+   "options_title": "Zwei Wege, damit umzugehen",
+   "options": [
+    "**Empfohlen: Port 25 als Ausnahme behandeln.** Lass deine Ländersperre für alles andere bestehen und lege eine Pass-Regel für Port 25 *darüber* an. Die Schritte stehen unten.",
+    "**Strenger: nur die großen Mailanbieter erlauben.** Dafür brauchst du Listen ihrer Adressbereiche, und die ändern sich laufend. Das ist viel Pflegeaufwand und leicht falsch, es lohnt sich nur, wenn du OPNsense-Aliase gut kennst."
+   ],
+   "opn_title": "OPNsense: Pass-Regel für Port 25 oberhalb der Ländersperre",
+   "s1_title": "Herausfinden, welche Regel die Mail blockiert",
+   "s1_text": "Öffne **Firewall ‣ Log Files ‣ Live View**, filtere nach Zielport 25 und sende die Testmail. Die blockierte Zeile zeigt, welche Regel sie stoppt (klicke auf das *i* an der Zeile). Das ist deine Ländersperre.",
+   "s2_title": "Eine Pass-Regel für Port 25 anlegen",
+   "s2_text": "Öffne **Firewall ‣ Rules ‣ WAN**, klicke auf **+** und fülle aus:",
+   "rows": {
+    "action": [
+     "Action",
+     "**Pass**"
+    ],
+    "interface": [
+     "Interface",
+     "WAN"
+    ],
+    "direction": [
+     "Direction",
+     "in"
+    ],
+    "version": [
+     "TCP/IP Version",
+     "IPv4"
+    ],
+    "protocol": [
+     "Protocol",
+     "TCP"
+    ],
+    "source": [
+     "Source",
+     "any (genau darum geht es: Der Absender kann überall sein)"
+    ],
+    "destination": [
+     "Destination",
+     "der Alias von Home Assistant (zum Beispiel HassOS)"
+    ],
+    "port": [
+     "Destination port range",
+     "SMTP (25), oder dein Port-Alias, falls du einen anderen Host-Port nutzt"
+    ],
+    "log": [
+     "Log",
+     "an, solange du testest"
+    ],
+    "description": [
+     "Description",
+     "Mail Forwarder: Mail von überall"
+    ]
+   },
+   "s2_note": "Warum die Adresse von Home Assistant als Ziel: Die Portweiterleitung wird zuerst umgesetzt, die Firewall-Regeln sehen also die Adresse von Home Assistant und den Zielport, nicht deine WAN-Adresse.",
+   "s3_title": "Über die Ländersperre schieben",
+   "s3_text": "Regeln werden von oben nach unten geprüft, die erste passende gewinnt. Ziehe die neue Regel **über** die Regel, die die Länder blockiert, und drücke **Save** und **Apply changes**.",
+   "s4_title": "Noch einmal testen",
+   "s4_text": "Sende die Testmail erneut. Im Live View erscheint jetzt ein Pass für Port 25, während alle anderen Ports hinter deiner Ländersperre bleiben. Schalte die Option „Log“ wieder aus, wenn es klappt.",
+   "s5_title": "Optional: Du entscheidest, wer durchkommt",
+   "s5_text": "Behältst du in der Portweiterleitung auch „Firewall rule: Pass“, legt OPNsense zusätzlich eine eigene Regel an. Sobald deine eigene Regel funktioniert, kannst du „Firewall rule“ der Portweiterleitung auf **Manual** stellen, damit nur die Regel, die du selbst kontrollierst, Mails hereinlässt.",
+   "other": "**Andere Firewalls und Router:** Suche nach Länder- oder GeoIP-Filtern und nimm Port 25 aus, oder schalte den Filter für genau diesen Port ab."
   }
  },
  "activity": {
@@ -916,6 +983,10 @@
     [
      "Ist es sicher, Port 25 zu öffnen?",
      "Die App nimmt nur Mails für Adressen an, die du angelegt hast, und lehnt alles andere ab, sie ist kein offenes Relay. Scanner klopfen trotzdem an den Port, halte die App aktuell."
+    ],
+    [
+     "Ich erlaube nur Verkehr aus Deutschland. Ist das ein Problem?",
+     "Ja. Gmail, Outlook und viele Versanddienste senden aus Rechenzentren im Ausland, deshalb stoppt eine Ländersperre ihre Mails. Lass die Sperre für alles andere bestehen und lege darüber eine Pass-Regel für Port 25 an, die Seite Router & Netzwerk zeigt, wie."
     ]
    ]
   },
@@ -941,6 +1012,10 @@
     [
      "Funktioniert nur bei manchen Absendern",
      "Ein anderer MX-Eintrag der Domain zeigt noch woanders hin, oder der Mailserver-Name hat einen IPv6-Eintrag (AAAA)."
+    ],
+    [
+     "Die Testmail kommt nicht an und ich blockiere Länder",
+     "Sieh im Live-Protokoll der Firewall nach Zielport 25. Eine blockierte Zeile mit ausländischer Adresse heißt: Deine Ländersperre stoppt die Mail. Mache Port 25 zur Ausnahme, siehe den Kasten „Du blockierst Länder?“ auf der Seite Router & Netzwerk."
     ]
    ]
   }

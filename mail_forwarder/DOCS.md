@@ -97,7 +97,7 @@ log view for debugging), for the FRITZ!Box and for other routers. The short vers
 * Do not use Cloudflare's orange cloud (proxy) for the mail server name: proxies do not forward mail.
 * Remove other MX records of the domain, for example those of Cloudflare Email Routing.
 * If OPNsense (plugin `os-ddclient`) or your router already updates your DNS record, leave the token fields of this app empty. Two updaters for the same record work against each other.
-* If you use GeoIP or block lists in front of WAN, let the big mail providers through.
+* **Country blocks (GeoIP):** Gmail, Outlook and many sending services send from data centers abroad, mostly in the USA. A rule that only allows Germany stops their mail. Keep the block for everything else and add a pass rule for port 25 above it. The **Router & network** page shows the steps for OPNsense.
 
 If port 25 is already used on your Home Assistant, change the host port in the app's **Network**
 tab (for example 2525) and forward to that port instead. The app page shows the right number.
@@ -140,6 +140,7 @@ browser and can be switched in the footer.
 | "Needs your attention" in Activity | A setting is wrong, usually the login or sender address of the sending service. The message stays queued and goes out after you fix it |
 | Mail arrives in spam | Normal for the first message of a sender. Authenticate your domain at the sending service, and use an address of that domain as sender |
 | Mail is refused as "No such user" | The address is not added under **Mailboxes**, or the person is switched off |
+| Test mail does not arrive and you block countries | The country block stops mail from abroad. Make port 25 an exception, see *Router and OPNsense* |
 | Works for some senders only | Another MX record on the domain still points elsewhere |
 
 Switch `log_level` to `debug` and read the app log for more detail.
@@ -173,6 +174,7 @@ Kurzfassung der Dokumentation. Die App-Seite selbst (**Web-UI öffnen**) ist zwe
 
 * Mit einer kostenlosen DuckDNS-Domain klappt der Empfang. Zum Senden nimm Gmail oder WEB.DE, weil du bei DuckDNS keine weiteren DNS-Einträge anlegen kannst.
 * Aktualisiert dein Router oder OPNsense (Plugin `os-ddclient`) deinen DNS-Eintrag schon, trage hier **keinen** DuckDNS- oder Cloudflare-Token ein.
+* Blockierst du Länder (GeoIP, zum Beispiel „nur Deutschland“), wird auch Mail aus dem Ausland geblockt, und Gmail und Outlook senden meist aus den USA. Lass die Sperre für alles andere bestehen und lege eine Pass-Regel für Port 25 darüber an, die Seite *Router & Netzwerk* zeigt die Schritte für OPNsense.
 * Bei DS-Lite oder CGNAT sowie bei gesperrtem Port 25 kommt keine Mail an. Die Seite *Router & Netzwerk* erklärt, wie du das prüfst.
 * Liegt deine Domain bei Cloudflare und du brauchst nur wenige Adressen, leitet Cloudflare *Email Routing* kostenlos ohne Heimserver weiter.
 
