@@ -5,8 +5,11 @@ description: Receives mail for your own domains and forwards it to your Gmail, O
 url: https://github.com/seb5594/Home-Assistant-Mail-Forwarder-App
 init: false
 arch:
-  - amd64
   - aarch64
+  - amd64
+  - armv7
+  - armhf
+  - i386
 ingress: true
 ingress_port: 8099
 panel_icon: mdi:email-fast-outline
