@@ -50,7 +50,9 @@ class Application:
         self.ddns.start()
         if background_checks:
             self.diagnostics.run_in_background()
-        self.events.info(f"Ready: receiving mail on port {self.smtp_port}, web interface on port {self.web_port}.")
+        self.events.info(
+            f"Ready: receiving mail on port {self.smtp_port}, web interface on port {self.web_port}.",
+            "ready", smtp_port=self.smtp_port)
 
     async def stop(self) -> None:
         await self.smtp.stop()

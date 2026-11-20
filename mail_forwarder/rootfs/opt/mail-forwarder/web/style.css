@@ -214,6 +214,12 @@ th { color: var(--muted); font-size: .78rem; text-transform: uppercase; letter-s
 .note p:last-child { margin: 0; }
 .value { white-space: nowrap; font-family: var(--mono); background: var(--surface-2); padding: .05em .4em; border-radius: 6px; font-size: .9em; }
 
+/* ---- help ---- */
+.definitions { margin: 0; display: grid; gap: 4px 0; }
+.definitions dt { font-weight: 700; margin-top: 10px; }
+.definitions dt:first-child { margin-top: 0; }
+.definitions dd { margin: 0 0 0 0; color: var(--muted); }
+
 /* ---- logs ---- */
 .log { display: grid; gap: 4px; font-size: .88rem; }
 .log-line { display: grid; grid-template-columns: 7.5rem 1fr; gap: 10px; }
@@ -234,8 +240,13 @@ th { color: var(--muted); font-size: .78rem; text-transform: uppercase; letter-s
 /* ---- footer (see the other apps of this author) ---- */
 .footer { max-width: 1000px; margin: 28px auto 0; padding: 0 16px 28px; }
 .footer-inner { border-top: 1px solid var(--line); padding-top: 22px; display: grid; gap: 12px; justify-items: center; text-align: center; }
-.footer-version { justify-self: start; margin: 0; color: var(--muted); font-size: .8rem; }
-.footer-credit { margin: 0; color: var(--muted); font-size: .85rem; }
+.footer-top { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.footer-version { margin: 0; color: var(--muted); font-size: .8rem; }
+.language-switch { display: flex; gap: 4px; }
+.language-switch button { font: inherit; font-size: .78rem; font-weight: 600; color: var(--muted); background: none; border: 1px solid var(--line); border-radius: 99px; padding: 2px 10px; cursor: pointer; }
+.language-switch button[aria-pressed="true"] { color: var(--accent-strong); border-color: var(--accent); background: var(--accent-soft); }
+.footer-credit { margin: 0; color: var(--muted); font-size: .85rem; line-height: 1.7; }
+.footer-credit a { color: inherit; font-weight: 600; }
 .heart { color: #ef4444; }
 .footer-buttons { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
 .footer .button-outline { font-weight: 500; }

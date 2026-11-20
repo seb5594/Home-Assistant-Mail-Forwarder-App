@@ -51,7 +51,8 @@ class Inbox:
             for target, aliases in by_target.items():
                 jobs.append(self._spool.add(sender, target, aliases, raw, token))
         for job in jobs:
-            self._events.info(f"Received a message for {', '.join(job.aliases)}; forwarding to {job.target}.")
+            self._events.info(f"Received a message for {', '.join(job.aliases)}; forwarding to {job.target}.",
+                              "received", aliases=", ".join(job.aliases), target=job.target)
             self._stats.received()
         if token:
             self._tests.mark(token, "arrived")

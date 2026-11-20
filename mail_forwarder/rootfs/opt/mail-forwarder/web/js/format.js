@@ -1,27 +1,24 @@
 // Small formatting helpers shared by the views.
+import { t } from './i18n.js';
 
 export function timeAgo(seconds) {
-  if (!seconds) return 'never';
+  if (!seconds) return t('common.never');
   const delta = Math.max(0, Date.now() / 1000 - seconds);
-  if (delta < 45) return 'just now';
-  if (delta < 3600) return `${Math.round(delta / 60)} min ago`;
-  if (delta < 86400) return `${Math.round(delta / 3600)} h ago`;
-  return `${Math.round(delta / 86400)} d ago`;
+  if (delta < 45) return t('common.just_now');
+  if (delta < 3600) return t('common.min_ago', { n: Math.round(delta / 60) });
+  if (delta < 86400) return t('common.h_ago', { n: Math.round(delta / 3600) });
+  return t('common.d_ago', { n: Math.round(delta / 86400) });
 }
 
 export function inFuture(seconds) {
   const delta = seconds - Date.now() / 1000;
-  if (delta <= 0) return 'now';
-  if (delta < 3600) return `in ${Math.ceil(delta / 60)} min`;
-  return `in ${Math.round(delta / 3600)} h`;
+  if (delta <= 0) return t('common.now');
+  if (delta < 3600) return t('common.in_min', { n: Math.ceil(delta / 60) });
+  return t('common.in_h', { n: Math.round(delta / 3600) });
 }
 
 export function clock(seconds) {
   return new Date(seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-}
-
-export function plural(count, one, many) {
-  return `${count} ${count === 1 ? one : many}`;
 }
 
 // A friendly name for well-known mailbox providers.

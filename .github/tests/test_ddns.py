@@ -40,8 +40,9 @@ class CloudflareTests(unittest.TestCase):
         self.assertEqual(self.client(fake).zone_id("mail.example.test"), "zone1")
 
     def test_missing_zone_is_explained(self):
-        with self.assertRaisesRegex(DdnsError, "No Cloudflare zone"):
+        with self.assertRaises(DdnsError) as caught:
             self.client(FakeCloudflare(zones=())).zone_id("mail.example.test")
+        self.assertEqual(caught.exception.code, "cf_no_zone")
 
     def test_missing_record_is_created_unproxied(self):
         fake = FakeCloudflare()
@@ -86,6 +87,8 @@ class UpdaterTests(unittest.TestCase):
         status = self.updater.status()
         self.assertTrue(status["duckdns"]["ok"])
         self.assertTrue(status["cloudflare:mail.example.test"]["ok"])
+        self.assertEqual(status["duckdns"]["code"], "done")
+        self.assertEqual(status["duckdns"]["params"]["ip"], "203.0.113.7")
         self.assertEqual(self.state.get("ddns_ip"), "203.0.113.7")
 
     def test_unchanged_ip_does_not_call_the_providers_again(self):
@@ -97,10 +100,11 @@ class UpdaterTests(unittest.TestCase):
         self.assertEqual(duck.call_count, 1)
 
     def test_a_failing_provider_is_reported_and_retried(self):
-        with mock.patch.object(ddns, "update_duckdns", side_effect=DdnsError("KO")), \
+        with mock.patch.object(ddns, "update_duckdns", side_effect=DdnsError("duckdns_refused")), \
                 mock.patch.object(CloudflareClient, "_call", lambda self, *a, **k: FakeCloudflare()(*a, **k)):
             self.updater.update(force=True)
         self.assertFalse(self.updater.status()["duckdns"]["ok"])
+        self.assertEqual(self.updater.status()["duckdns"]["code"], "duckdns_refused")
         self.assertIsNone(self.state.get("ddns_ip"))
 
     def test_duckdns_answer_is_checked(self):

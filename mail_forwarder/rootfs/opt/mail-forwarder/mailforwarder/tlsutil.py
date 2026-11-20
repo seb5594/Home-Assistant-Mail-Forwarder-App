@@ -47,7 +47,7 @@ class TlsProvider:
         if certificate.exists() and key.exists() and current == hostname and self._still_valid(certificate):
             return str(certificate), str(key)
         if shutil.which("openssl") is None:
-            self._events.warning("openssl is missing, so mail will be received without encryption.")
+            self._events.warning("openssl is missing, so mail will be received without encryption.", "openssl_missing")
             return None
         command = ["openssl", "req", "-x509", "-newkey", "rsa:2048", "-sha256", "-nodes", "-days", "3650",
                    "-subj", f"/CN={hostname}", "-addext", f"subjectAltName=DNS:{hostname}",
@@ -55,11 +55,12 @@ class TlsProvider:
         try:
             subprocess.run(command, check=True, capture_output=True, timeout=60)
         except (subprocess.SubprocessError, OSError) as error:
-            self._events.warning(f"Could not create a TLS certificate, mail is received unencrypted: {error}")
+            self._events.warning(f"Could not create a TLS certificate, mail is received unencrypted: {error}",
+                                 "tls_failed", detail=str(error))
             return None
         key.chmod(0o600)
         marker.write_text(hostname)
-        self._events.info(f"Created a TLS certificate for {hostname}.")
+        self._events.info(f"Created a TLS certificate for {hostname}.", "tls_created", host=hostname)
         return str(certificate), str(key)
 
     @staticmethod

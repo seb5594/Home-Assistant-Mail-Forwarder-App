@@ -1,4 +1,8 @@
-"""A small in-memory activity log that the web interface shows next to the Supervisor log."""
+"""A small in-memory activity log that the web interface shows next to the Supervisor log.
+
+Every event carries a ``code`` and ``params`` so that the web interface can show it in the
+language of the browser. ``message`` is the English text for the Supervisor log.
+"""
 import itertools
 import logging
 import threading
@@ -18,20 +22,21 @@ class ActivityLog:
         self._lock = threading.Lock()
         self._ids = itertools.count(1)
 
-    def add(self, level: str, message: str) -> None:
+    def add(self, level: str, message: str, code: str = "", **params) -> None:
         LOGGER.log(LEVELS.get(level, logging.INFO), message)
-        entry = {"id": next(self._ids), "time": time.time(), "level": level, "message": message}
+        entry = {"id": next(self._ids), "time": time.time(), "level": level, "message": message,
+                 "code": code, "params": params}
         with self._lock:
             self._items.append(entry)
 
-    def info(self, message: str) -> None:
-        self.add("info", message)
+    def info(self, message: str, code: str = "", **params) -> None:
+        self.add("info", message, code, **params)
 
-    def warning(self, message: str) -> None:
-        self.add("warning", message)
+    def warning(self, message: str, code: str = "", **params) -> None:
+        self.add("warning", message, code, **params)
 
-    def error(self, message: str) -> None:
-        self.add("error", message)
+    def error(self, message: str, code: str = "", **params) -> None:
+        self.add("error", message, code, **params)
 
     def recent(self, limit: int = 100) -> list:
         """Newest event first."""

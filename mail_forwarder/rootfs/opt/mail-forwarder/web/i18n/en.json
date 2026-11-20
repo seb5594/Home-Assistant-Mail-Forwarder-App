@@ -1,0 +1,948 @@
+{
+ "app": {
+  "experimental": "Experimental",
+  "experimental_hint": "This app is new and still being tested",
+  "loading": "Loading…",
+  "unreachable": "The app does not answer",
+  "unreachable_text": "The app does not answer. Is it still running?",
+  "language": "Language"
+ },
+ "tab": {
+  "overview": "🏠 Overview",
+  "mailboxes": "📬 Mailboxes",
+  "domains": "🌐 Domains",
+  "sending": "📤 Sending",
+  "network": "🛡️ Router & network",
+  "activity": "📜 Activity",
+  "help": "💡 Help",
+  "attention": "Needs attention"
+ },
+ "common": {
+  "copy": "Copy",
+  "copied": "Copied",
+  "copy_failed": "Select the text and copy it by hand",
+  "cancel": "Cancel",
+  "save": "Save",
+  "saved": "Saved",
+  "remove": "Remove",
+  "delete": "Delete",
+  "edit": "Edit",
+  "review": "Review",
+  "open": "Open",
+  "never": "never",
+  "now": "now",
+  "unknown": "unknown",
+  "checking": "Checking…",
+  "run_checks": "🔄 Run checks now",
+  "open_guide": "Open the guide",
+  "how_to_fix": "How to fix this",
+  "go_overview": "Go to the Overview",
+  "just_now": "just now",
+  "min_ago": "{n} min ago",
+  "h_ago": "{n} h ago",
+  "d_ago": "{n} d ago",
+  "in_min": "in {n} min",
+  "in_h": "in {n} h",
+  "last_run": "Last run {when}",
+  "not_run": "Not run yet",
+  "from": "from {sender}",
+  "unknown_sender": "unknown",
+  "yes": "Yes",
+  "no": "No"
+ },
+ "footer": {
+  "developed": "Application developed by [seb5594 (Sebastian Schmidt)](https://github.com/seb5594)",
+  "made_before": "Made with",
+  "made_after": "in Germany",
+  "more": "More Home Assistant Apps",
+  "support": "Support my work ☕🍺"
+ },
+ "overview": {
+  "banner": {
+   "setup": {
+    "title": "👋 Let's set up your mail forwarding",
+    "text": "Follow the checklist below. Most of the time goes into waiting for DNS changes, the clicking itself is quick."
+   },
+   "problem_one": {
+    "title": "⚠️ 1 thing needs your attention",
+    "text": "Open the failing checks below, each one says what to do."
+   },
+   "problem_other": {
+    "title": "⚠️ {count} things need your attention",
+    "text": "Open the failing checks below, each one says what to do."
+   },
+   "unverified": {
+    "title": "🕐 Almost there",
+    "text": "The setup looks fine, but no mail from the internet has reached this app yet. Send a test mail below."
+   },
+   "ready": {
+    "title": "✅ Mail forwarding is running",
+    "text": "Mail sent to your addresses is received here and forwarded to the real mailboxes."
+   },
+   "unknown": {
+    "title": "🔎 Checking your setup…",
+    "text": "This takes a few seconds."
+   }
+  },
+  "checklist": "📝 Setup checklist",
+  "steps": {
+   "domain": {
+    "title": "🌐 Add your domain",
+    "detail": "The part after the @ of your new addresses."
+   },
+   "mailbox": {
+    "title": "👪 Add the people who get mail",
+    "detail": "Each person gets one or more addresses and one real inbox."
+   },
+   "sending": {
+    "title": "📤 Choose how mail is sent on",
+    "detail": "A free sending service delivers the forwarded mail reliably."
+   },
+   "dns": {
+    "title": "🧾 Create the DNS records",
+    "detail": "They tell the internet that this app receives your mail."
+   },
+   "port": {
+    "title": "🚪 Open port 25 in your router",
+    "detail": "Without it, mail cannot reach your Home Assistant."
+   },
+   "test": {
+    "title": "🧪 Send a test mail",
+    "detail": "Proves the whole way: out, back in and on to the inbox."
+   }
+  },
+  "health": "🩺 Health checks",
+  "first_run": "The first run is under way.",
+  "groups": {
+   "app": "This app",
+   "internet": "Internet",
+   "dns": "DNS records",
+   "outbound": "Sending"
+  },
+  "test": {
+   "title": "🧪 Test mail",
+   "intro": "Sends a message to one of your addresses through your sending service. If it arrives in the inbox, everything from DNS to router is right.",
+   "no_addresses": "Add a person with an address first, then you can test it here.",
+   "address": "Address to test",
+   "send": "✉️ Send test mail",
+   "running": "Test is running…",
+   "started": "Test mail started",
+   "steps": {
+    "sent": "Handed to the sending service",
+    "arrived": "Came back to this app through the internet",
+    "forwarded": "Forwarded to the real mailbox"
+   },
+   "waiting": "This usually takes under a minute. You can leave this page open or come back later.",
+   "ok": "🎉 It works! The test mail travelled the whole way. Look into the inbox of {target} (and its spam folder, the first mail of a new sender often lands there).",
+   "failed_hint": "Fix the problem named above (usually on the Sending page) and try again.",
+   "failed_generic": "The test failed.",
+   "timeout_not_sent": "The test mail was never sent.",
+   "timeout_not_arrived": "The test mail left, but never came back to this app.",
+   "timeout_not_forwarded": "The test mail arrived but could not be forwarded.",
+   "tips_not_sent": [
+    "Check the Sending page, then press “Save & test login”."
+   ],
+   "tips_not_arrived": [
+    "The DNS checks above must all be green (MX record and A record).",
+    "Port 25 must be forwarded in your router, see the Router & network page.",
+    "Some providers block incoming port 25 or hide your connection behind a shared address (CGNAT, DS-Lite). The Router & network page explains how to find out."
+   ],
+   "tips_not_forwarded": [
+    "Open the Activity page: it shows why the forwarding failed and when it is tried again."
+   ],
+   "the_mailbox": "the mailbox"
+  },
+  "stats": {
+   "title": "📊 Mail so far",
+   "forwarded": "forwarded",
+   "waiting": "waiting to be sent",
+   "failed": "given up on",
+   "rejected": "refused (unknown address)",
+   "last": "last forwarded"
+  }
+ },
+ "checks": {
+  "setup_domain": {
+   "title": "A domain is added",
+   "todo": {
+    "detail": "Mail needs an address to be sent to. Add your domain first."
+   }
+  },
+  "setup_mailbox": {
+   "title": "A person with an address is added",
+   "todo": {
+    "detail": "Say who gets the mail: a name, one or more addresses and the real inbox."
+   }
+  },
+  "setup_sending": {
+   "title": "Sending is set up",
+   "todo": {
+    "detail": "Choose how forwarded mail leaves: through a sending service (recommended)."
+   }
+  },
+  "app_listener": {
+   "title": "The mail receiver is running",
+   "ok": {
+    "detail": "Listening on port {port}."
+   },
+   "down": {
+    "detail": "Nothing answers on port {port} inside the app.",
+    "fix": [
+     "Open the app’s Log tab and look for errors.",
+     "Restart the app."
+    ]
+   }
+  },
+  "app_port": {
+   "title": "Port {port} is published by Home Assistant",
+   "unknown": {
+    "detail": "The Supervisor could not be asked about the port mapping."
+   },
+   "unpublished": {
+    "detail": "Container port {port} is not published, so nothing outside can reach the receiver.",
+    "fix": [
+     "Open this app in Home Assistant (Settings, Apps, Mail Forwarder) and go to the tab **Configuration**.",
+     "Under **Network** enter {port} next to {port}/tcp and save.",
+     "Restart the app."
+    ]
+   },
+   "ok": {
+    "detail": "Container port {port} is reachable on port {host_port} of your Home Assistant computer."
+   }
+  },
+  "net_ip": {
+   "title": "Your public IP address is known",
+   "ok": {
+    "detail": "{ip}"
+   },
+   "unknown": {
+    "detail": "No lookup service answered. Is outbound HTTPS blocked?",
+    "fix": [
+     "Check that this Home Assistant can open websites.",
+     "Checks that depend on your public IP are skipped until this works."
+    ]
+   }
+  },
+  "dns_a": {
+   "title": "{host} points to your home",
+   "none": {
+    "detail": "{host} has no A record yet.",
+    "fix": [
+     "Create an A record for it, or switch on dynamic DNS on the Domains page."
+    ]
+   },
+   "proxied": {
+    "detail": "{host} is proxied by Cloudflare (orange cloud). A proxy does not forward mail.",
+    "fix": [
+     "In Cloudflare, open the DNS records of {domain}.",
+     "Click the orange cloud next to {host} so that it turns grey (“DNS only”)."
+    ]
+   },
+   "unknown_ip": {
+    "detail": "{host} points to {addresses}; your own IP is unknown."
+   },
+   "ok": {
+    "detail": "{host} → {ip}"
+   },
+   "mismatch": {
+    "detail": "{host} points to {addresses}, but your public IP is {ip}.",
+    "fix": [
+     "Change the A record to your current IP, or switch on dynamic DNS on the Domains page so that it follows your IP automatically.",
+     "If your router or OPNsense updates DNS for you, check that update first.",
+     "Wait a few minutes after changing it and run the checks again."
+    ]
+   }
+  },
+  "dns_mx": {
+   "title": "{domain} tells senders where to deliver (MX)",
+   "missing": {
+    "detail": "{domain} has no MX record.",
+    "fix": [
+     "Add an MX record for {domain} with the mail server {host} and priority 10."
+    ]
+   },
+   "wrong": {
+    "detail": "The preferred mail server of {domain} is {first}, not {host}. Found: {found}.",
+    "fix": [
+     "Remove the other MX records of {domain}, for example those of Cloudflare Email Routing, and keep only {host}."
+    ]
+   },
+   "many": {
+    "detail": "More than one MX record exists. Senders fall back to the others when yours is busy.",
+    "fix": [
+     "Remove the extra MX records unless you want them as a backup."
+    ]
+   },
+   "ok": {
+    "detail": "{domain} → {host}"
+   }
+  },
+  "dns_aaaa": {
+   "title": "{host} has no IPv6 address",
+   "present": {
+    "detail": "Senders prefer IPv6 when it exists, and this app is not set up for it.",
+    "fix": [
+     "Delete the AAAA record of this host, or forward port 25 for IPv6 as well."
+    ]
+   }
+  },
+  "dns_error": {
+   "title": "DNS of {domain}",
+   "unreachable": {
+    "detail": "DNS over HTTPS is not reachable: {detail}",
+    "fix": [
+     "Allow outbound HTTPS to cloudflare-dns.com or dns.google."
+    ]
+   }
+  },
+  "out_relay": {
+   "title": "The sending service can be reached ({host}:{port})",
+   "todo": {
+    "detail": "No sending service is chosen yet."
+   },
+   "ok": {},
+   "blocked": {
+    "fix": [
+     "Your network blocks outbound connections to port {port}.",
+     "Allow it in your firewall, or try port 2525 or 465 if your service offers them."
+    ]
+   }
+  },
+  "out_port25": {
+   "title": "Outgoing port 25 is open",
+   "ok": {},
+   "blocked": {
+    "fix": [
+     "Most internet providers and many firewalls block outgoing port 25.",
+     "Switch to a sending service on the Sending page: it uses port 587."
+    ]
+   }
+  },
+  "in_traffic": {
+   "title": "A mail server from the internet has connected",
+   "ok": {
+    "detail": "Last connection from {address}."
+   },
+   "none": {
+    "detail": "No outside connection to this app has been seen yet. That is normal until your router forwards port 25 and someone (or the test button) sends mail.",
+    "fix": [
+     "Forward port 25 in your router, see the Router & network page.",
+     "Then press “Send test mail” on the Overview."
+    ]
+   }
+  },
+  "internal": {
+   "title": "A check could not run",
+   "failed": {
+    "detail": "{detail}"
+   }
+  }
+ },
+ "probe": {
+  "greeting": "{detail}",
+  "connected": "Connected.",
+  "bad_greeting": "Connected, but the server did not greet like a mail server: {detail}",
+  "dns": "The name {detail} could not be resolved.",
+  "timeout": "Timed out. A firewall is probably silently dropping the traffic.",
+  "refused": "Connection refused: nothing is listening there, or a firewall rejects it.",
+  "error": "{detail}"
+ },
+ "delivery": {
+  "login_rejected": "The sending service rejected the login: {detail}",
+  "sender_refused": "The sending service does not accept the sender address: {detail}",
+  "starttls_missing": "The server does not offer a required feature: {detail}",
+  "recipient_refused": "The recipient was refused: {detail}",
+  "server_error": "The mail server answered: {detail}",
+  "connection_failed": "The connection failed: {detail}",
+  "no_sender": "No sender address is set. Open the Sending page and fill in “Sender address”.",
+  "no_relay": "No sending service is configured. Open the Sending page.",
+  "dns_failed": "DNS lookup failed: {detail}",
+  "no_server": "No mail server found.",
+  "direct_login": "Direct sending does not use a login.",
+  "login_ok": "Connected to {host} and logged in.",
+  "unexpected": "Unexpected error: {detail}"
+ },
+ "errors": {
+  "config_object": "The configuration has to be an object.",
+  "domain_kind": "Unknown domain type for {name}.",
+  "domain_invalid": "“{name}” is not a valid domain name.",
+  "duckdns_suffix": "A DuckDNS domain has to end with {suffix}.",
+  "domain_twice": "The domain {name} is listed twice.",
+  "mail_host_invalid": "“{host}” is not a valid mail server name.",
+  "person_name": "Every person needs a name.",
+  "target_invalid": "“{target}” is not a valid e-mail address for {name}.",
+  "target_loop": "{name}: the mailbox {target} is on one of your own domains, which would make mail go in circles. Use the real inbox, for example at Gmail.",
+  "local_invalid": "“{local}” cannot be used as the first part of an address ({name}).",
+  "domain_unknown": "The domain “{domain}” of {name} is not in your domain list.",
+  "address_twice": "{address} is used by {first} and {second}.",
+  "mode_unknown": "Unknown sending method.",
+  "security_unknown": "Unknown connection security.",
+  "sender_invalid": "“{sender}” is not a valid sender address.",
+  "port_number": "The port has to be a number.",
+  "port_range": "The port has to be between 1 and 65535.",
+  "json_expected": "Expected a JSON request.",
+  "too_large": "The request is too large.",
+  "invalid_json": "The request is not valid JSON.",
+  "object_expected": "Expected a JSON object.",
+  "test_address": "Choose one of your own, enabled addresses for the test.",
+  "test_running": "A test is already running. Wait for it to finish.",
+  "queue_missing": "That message does not exist (any more).",
+  "not_found": "Not found",
+  "internal": "Something went wrong inside the app. See the log.",
+  "need_address": "Add at least one address, for example “info”."
+ },
+ "events": {
+  "ready": "Ready: receiving mail on port {smtp_port}.",
+  "received": "Received a message for {aliases}; forwarding to {target}.",
+  "forwarded": "✅ Forwarded a message for {aliases} to {target}.",
+  "gave_up": "❌ Gave up on a message ({aliases} → {target}).",
+  "retry_later": "Could not forward yet ({aliases} → {target}). Next try in {minutes} min.",
+  "attention": "⚠️ Needs your attention ({aliases} → {target}). Next try in {minutes} min.",
+  "test_sent": "Test message to {alias} was handed to the sending service.",
+  "test_failed": "The test message could not be sent.",
+  "tls_created": "Created a TLS certificate for {host}.",
+  "tls_failed": "Could not create a TLS certificate, mail is received unencrypted: {detail}",
+  "openssl_missing": "openssl is missing, so mail will be received without encryption.",
+  "ddns_updated": "Dynamic DNS: {hosts} now points to {ip}.",
+  "ddns_failed": "Dynamic DNS ({key}) failed.",
+  "ddns_crashed": "Dynamic DNS update failed unexpectedly: {detail}",
+  "web_failed": "A web request failed: {path}"
+ },
+ "ddns": {
+  "done": "{hosts} → {ip} ({outcome})",
+  "no_ip": "Your public IP address could not be determined.",
+  "duckdns_refused": "DuckDNS refused the update. Check the token and that the domain belongs to that account.",
+  "duckdns_unreachable": "DuckDNS could not be reached: {detail}",
+  "cf_error": "Cloudflare said: {detail}. Check that the token may edit DNS of this zone.",
+  "cf_unreachable": "Cloudflare could not be reached: {detail}",
+  "cf_no_zone": "No Cloudflare zone for {host} was found with this token.",
+  "outcome": {
+   "created": "created",
+   "updated": "updated",
+   "unchanged": "unchanged"
+  }
+ },
+ "mailboxes": {
+  "intro_title": "📬 How the mailboxes work",
+  "intro_text": "You do not create real mailboxes here. Each person gets addresses like `max@your-domain.com`, and everything sent there is passed on to the inbox they already use.",
+  "intro_tips": [
+   "Tell the person about their new address, and that the first mail may land in the spam folder until they mark it as “not spam”.",
+   "Replying works: the answer goes to the original sender, but it is sent from the inbox of the person, not from the new address.",
+   "Only addresses you add here are accepted. Everything else is refused at the door, which keeps spam out."
+  ],
+  "people": "👪 People",
+  "add_person": "+ Add a person",
+  "nobody": "Nobody yet. Add yourself first, then family and friends.",
+  "first_domain_title": "First add a domain",
+  "first_domain_text": "Addresses need a domain after the @. Add yours (or a free DuckDNS one) first.",
+  "go_domains": "Go to Domains",
+  "forwards_to": "forwards to",
+  "switched_off": "Switched off",
+  "no_address": "No address yet",
+  "send_test": "Send test mail",
+  "switch_off": "Switch off",
+  "switch_on": "Switch on",
+  "dialog_add": "Add a person",
+  "dialog_edit": "Edit {name}",
+  "name": "Name",
+  "name_hint": "Only for you, to tell the entries apart.",
+  "name_placeholder": "Uncle Max",
+  "target": "Forward everything to this inbox",
+  "target_hint": "The real mailbox of this person, for example at Gmail, Outlook/Hotmail or WEB.DE.",
+  "addresses": "Addresses of this person",
+  "addresses_hint": "Mail to any of these goes to the inbox above. One person can have several, even on different domains.",
+  "local_label": "First part of the address",
+  "domain_label": "Domain",
+  "remove_address": "Remove this address",
+  "add_address": "+ Add another address",
+  "enabled": "Forwarding is switched on",
+  "remove_title": "Remove {name}?",
+  "remove_text": "Mail to {addresses} will be refused from now on."
+ },
+ "domains": {
+  "title": "🌐 Your domains",
+  "intro": "A domain is the part after the @ in an address. Mail for it is delivered to this app, so the internet must know where this app lives: that is what the DNS records do.",
+  "intro_more": "You can use several domains at once, for example your own domain plus a free DuckDNS name, and give one person addresses on both.",
+  "router_ddns_title": "🔔 Read this first if you use OPNsense or a router with dynamic DNS",
+  "router_ddns_text": "If your router or OPNsense (plugin **os-ddclient**, “Dynamic DNS”) already keeps your DNS record up to date, **do not enter a token** in “Keep DNS up to date” below and leave both switches off. Two updaters fighting over the same record is the most common reason for a mail server name that points to the wrong address. You only need this app’s updater when nothing else does the job.",
+  "list": "Domains",
+  "add": "+ Add a domain",
+  "none": "No domain yet.",
+  "types": {
+   "own": {
+    "title": "My own domain",
+    "text": "A domain you bought, for example at Cloudflare, with an address like name@your-domain.com."
+   },
+   "duckdns": {
+    "title": "Free DuckDNS domain",
+    "text": "A free name like family.duckdns.org. No purchase needed, addresses look like name@family.duckdns.org."
+   }
+  },
+  "status": {
+   "pending": "Not checked yet",
+   "error": "DNS needs attention",
+   "warn": "Works, with a warning",
+   "ok": "DNS is correct"
+  },
+  "records": "🧾 DNS records for this domain",
+  "remove_domain": "Remove domain",
+  "dialog_title": "Add a domain",
+  "domain_name": "Domain name",
+  "add_button": "Add domain",
+  "mail_host": "Mail server name",
+  "mail_host_hint": "The name your MX record will point to. “mail.” plus your domain is the usual choice, leave it empty for that.",
+  "remove_title": "Remove {name}?",
+  "remove_text_with": "{count} address(es) on this domain are removed as well. Your DNS records stay untouched.",
+  "remove_text": "Your DNS records stay untouched.",
+  "own_guide": {
+   "intro": "Open the DNS settings of **{domain}** (at Cloudflare: your domain, then *DNS*, then *Records*) and create these two records:",
+   "type": "Type",
+   "name": "Name",
+   "value": "Value",
+   "notes": "Notes",
+   "a_notes": "Proxy status: **DNS only** (grey cloud). Skip this record if you switch on dynamic DNS below and no router does it already.",
+   "mx_notes": "Priority **10**. Delete other MX records of this domain.",
+   "routing": "**Cloudflare Email Routing:** if you switched it on for this domain, it owns the MX records. Remove them first, the two cannot be used together.",
+   "wait": "DNS changes need a few minutes to spread. The status above turns green by itself, or press “Run checks now” on the Overview.",
+   "your_ip": "your public IP address"
+  },
+  "duck_guide": [
+   "Log in at [duckdns.org](https://www.duckdns.org) and create the subdomain `{sub}`.",
+   "Copy your DuckDNS token from that page into “Keep DNS up to date” below, so that the name follows your IP address. Skip this if your router already updates DuckDNS.",
+   "No MX record is needed. Senders fall back to the IP address of the name, which is what you want."
+  ],
+  "ddns": {
+   "title": "🔄 Keep DNS up to date",
+   "intro": "Your internet provider changes your public IP address from time to time. These switches let the app update your DNS records automatically, so that mail keeps finding you.",
+   "off_note": "Everything here is **off by default**. Leave it that way when your router, OPNsense or another tool already does this.",
+   "duck": "DuckDNS",
+   "duck_text": "Updates your duckdns.org names.",
+   "duck_token": "DuckDNS token",
+   "duck_placeholder": "Your DuckDNS token",
+   "cloud": "Cloudflare",
+   "cloud_text": "Creates and updates the A record of your mail server name (DNS only, never proxied).",
+   "cloud_token": "Cloudflare API token",
+   "cloud_placeholder": "Cloudflare API token",
+   "cloud_hint": "Cloudflare dashboard, My Profile, API Tokens, Create Token, template “Edit zone DNS”, pick your domain. It needs Zone: Read and DNS: Edit for that one zone only.",
+   "saved_placeholder": "Saved, type to replace",
+   "forget": "Forget saved token",
+   "forgotten": "Token removed. The updater is switched off.",
+   "save": "Save and update now",
+   "saved": "Saved. The app updates your DNS records now."
+  }
+ },
+ "sending": {
+  "mode_title": "📤 How should forwarded mail be sent?",
+  "mode_intro": "This app receives mail for your domain and then has to hand it to the inbox of the person. Gmail, Outlook and WEB.DE accept mail from a trusted sending service far more readily than from a home internet connection.",
+  "relay": {
+   "title": "Through a sending service",
+   "text": "Recommended. Reliable, free for private use, works from any home connection."
+  },
+  "direct": {
+   "title": "Directly from here",
+   "text": "Advanced. Big providers like Gmail and Outlook usually reject or hide mail that comes from a home connection."
+  },
+  "which": "Which service?",
+  "open_service": "Open {name}",
+  "needs_domain": "**You only have a DuckDNS domain.** This service needs a domain of your own. Pick Gmail or WEB.DE instead, or add a domain first.",
+  "server": "Server",
+  "port": "Port",
+  "security": "Connection security",
+  "sec": {
+   "starttls": "STARTTLS (port 587)",
+   "ssl": "SSL/TLS (port 465)",
+   "none": "None (not recommended)"
+  },
+  "sender": "Sender address",
+  "sender_hint": "Forwarded mail is sent from this address. The sending service must allow it, see the steps above.",
+  "use": "Use:",
+  "password_saved": "Saved, type to replace",
+  "rewrite_title": "Show the original sender in the name",
+  "rewrite_text": "Recommended. A forwarded mail cannot truthfully claim to come from the original sender, so strict providers sort it away. With this on, it comes from your sender address as “Anna (anna@example.org)”, and Reply still goes to Anna.",
+  "direct_warn_title": "Think twice before using this.",
+  "direct_warn_intro": "Direct delivery only works when:",
+  "direct_warn": [
+   "your internet provider does not block outgoing port 25 (many do),",
+   "your IP address has a reverse DNS name that matches your mail server name (home connections rarely have one),",
+   "the receiving provider does not distrust home IP addresses. Outlook/Hotmail and Gmail often do."
+  ],
+  "save": "Save",
+  "save_test": "Save & test login",
+  "go_test": "Go and send a test mail",
+  "best": "Recommended"
+ },
+ "presets": {
+  "brevo": {
+   "summary": "Free plan, made for sending. The clean choice when you own a domain.",
+   "username": "SMTP login",
+   "password": "SMTP key",
+   "steps": [
+    "Create a free account at brevo.com.",
+    "Open “SMTP & API” in the account menu and create an SMTP key. Copy the SMTP login and the key into the fields below. The key is not your account password.",
+    "Open “Senders, domains & dedicated IPs”, then “Domains”, and add your own domain. Brevo shows a few DNS records: create them in your DNS (at Cloudflare: DNS, then Records) and press verify.",
+    "Use an address of that domain as “Sender address” below, for example forwarder@your-domain. It does not have to exist as a mailbox."
+   ]
+  },
+  "smtp2go": {
+   "summary": "Free plan with a small monthly allowance, enough for family mail. Needs your own domain.",
+   "username": "SMTP username",
+   "password": "SMTP password",
+   "steps": [
+    "Create a free account at smtp2go.com.",
+    "Open “Settings”, then “SMTP Users”, and add an SMTP user. Copy username and password below.",
+    "Open “Settings”, then “Sender Domains”, add your domain and create the DNS records it shows.",
+    "Use an address of that domain as “Sender address” below, for example forwarder@your-domain."
+   ]
+  },
+  "mailjet": {
+   "summary": "Free plan with a daily limit. Needs your own domain.",
+   "username": "API key",
+   "password": "Secret key",
+   "steps": [
+    "Create a free account at mailjet.com.",
+    "Open the account settings, then “SMTP and SEND API settings”. The API key is the login, the secret key is the password.",
+    "Add your domain under “Senders & domains” and create the DNS records it shows.",
+    "Use an address of that domain as “Sender address” below, for example forwarder@your-domain."
+   ]
+  },
+  "gmail": {
+   "summary": "Quickest start, no domain needed. Uses your own Gmail account, so every forwarded message also shows up in its “Sent” folder.",
+   "username": "Gmail address",
+   "password": "App password",
+   "steps": [
+    "Turn on 2-Step Verification for the Google account.",
+    "Create an app password at myaccount.google.com/apppasswords and name it “Mail Forwarder”.",
+    "Use the full Gmail address as login and as “Sender address”. Gmail replaces any other sender."
+   ]
+  },
+  "webde": {
+   "summary": "Quick start without a domain. Uses your own WEB.DE account.",
+   "username": "WEB.DE address",
+   "password": "Password or app password",
+   "steps": [
+    "Log in at web.de, open the settings and allow POP3/IMAP/SMTP access.",
+    "If two-factor login is on, create an app password (“Anwendungspasswort”) for this app.",
+    "Use the full WEB.DE address as login and as “Sender address”."
+   ]
+  },
+  "custom": {
+   "name": "Other service",
+   "summary": "Any SMTP server that accepts a login, for example from your web hosting.",
+   "username": "Login",
+   "password": "Password",
+   "steps": [
+    "Ask your provider for the SMTP server name, port and login.",
+    "Port 587 with STARTTLS is the usual choice, port 465 uses “SSL/TLS”.",
+    "Use a sender address that the provider allows for your login."
+   ]
+  }
+ },
+ "network": {
+  "flow_title": "🛣️ How mail finds its way to this app",
+  "flow_text": "A sender looks up the MX record of your domain, connects to your public IP address on port 25, your router forwards that connection to Home Assistant, and Home Assistant hands it to this app.",
+  "tile_ip": "your public IP",
+  "tile_ha": "Home Assistant address (check it, it may differ)",
+  "tile_port": "router port → Home Assistant port",
+  "unknown_ip": "unknown",
+  "ha_placeholder": "<address of Home Assistant>",
+  "state_title": "🚦 Where things stand",
+  "publish": {
+   "title": "1️⃣ Publish the port in Home Assistant",
+   "intro": "Home Assistant keeps app ports closed until you open them:",
+   "steps": [
+    "Open this app in Home Assistant (Settings, Apps, Mail Forwarder) and go to the tab **Configuration**.",
+    "Under **Network** enter `25` next to `25/tcp`. If port 25 is taken on your Home Assistant, pick another one, for example 2525, and use that in the router.",
+    "Save and restart the app."
+   ]
+  },
+  "conn": {
+   "title": "🔌 Can your connection receive mail?",
+   "intro": "Most problems are not about your router but about the internet connection itself. Check these things before you spend an evening on firewall rules:",
+   "items": [
+    "**A real public IPv4 address.** Compare the “WAN address” in your router with the public IP shown above. If they differ, or the WAN address starts with 100.64 to 100.127, 10., 172.16 to 172.31 or 192.168, your provider shares one address between many customers (CGNAT or DS-Lite). Nothing can reach you from outside then. Many providers lift this for free or a small fee, ask for a “public IPv4 address” or a “Dual Stack” tariff.",
+    "**Incoming port 25 is not blocked by the provider.** Some providers block it on private contracts. A quick sign: the router log shows nothing when the test mail is sent. Ask the provider to unblock port 25 for incoming connections, or use a business tariff.",
+    "**Outgoing connections work.** The sending service is reached on port 587, which is almost never blocked. This is the reason why the app sends through a service and not directly."
+   ],
+   "cloudflare": "**Cannot get port 25?** If your domain is on Cloudflare, its free “Email Routing” forwards mail to your inbox without any home server. It needs no port and no router settings, but only works with domains at Cloudflare (not DuckDNS), and the forwarding addresses must be verified one by one."
+  },
+  "router_title": "🧭 Open port 25 in your router",
+  "routers": {
+   "opnsense": "OPNsense",
+   "fritzbox": "FRITZ!Box",
+   "other": "Other router"
+  },
+  "setting": "Setting",
+  "value": "Value",
+  "verify_title": "✅ Then prove it works",
+  "verify_text": "Press “Send test mail” on the Overview. The app sends a message through your sending service to your own address. If it comes back in through the internet, DNS, router and port are all right.",
+  "opn": {
+   "intro": "OPNsense lets nothing in by default, which is good. You need one **destination NAT rule** (port forward). The menu names below are those of the current OPNsense versions: **Firewall ‣ NAT ‣ Destination NAT** (older versions call it “Port Forward”).",
+   "s1_title": "Give Home Assistant a fixed address",
+   "s1_text": "Services ‣ DHCPv4 ‣ your LAN ‣ “Static mappings”: add the MAC address of the Home Assistant computer with the address `{ha}`. Otherwise the forward points to the wrong device after a restart.",
+   "s2_title": "Create an alias for Home Assistant",
+   "s2_text": "The rule below picks its target from a list of aliases, so create one first: **Firewall ‣ Aliases ‣ +**. Name: for example `HassOS`, Type: **Host(s)**, Content: `{ha}`. Save and apply.",
+   "s2_port": "Only if you changed the host port to something other than 25: create a second alias of type **Port(s)** with the number `{port}` and pick it as redirect target port.",
+   "s3_title": "Create the destination NAT rule",
+   "s3_text": "Open **Firewall ‣ NAT ‣ Destination NAT**, click **+** and fill in:",
+   "rows": {
+    "interface": [
+     "Interface",
+     "your internet connection (WAN)"
+    ],
+    "version": [
+     "Version",
+     "IPv4"
+    ],
+    "protocol": [
+     "Protocol",
+     "TCP"
+    ],
+    "src_invert": [
+     "Source ‣ Invert Source",
+     "off"
+    ],
+    "src_address": [
+     "Source ‣ Source Address",
+     "any"
+    ],
+    "src_port": [
+     "Source ‣ Source Port",
+     "any"
+    ],
+    "dst_invert": [
+     "Destination ‣ Invert Destination",
+     "off"
+    ],
+    "dst_address": [
+     "Destination ‣ Destination Address",
+     "“… address” of your WAN interface (for example WAN address, or WAN_FIBER address)"
+    ],
+    "dst_port": [
+     "Destination ‣ Destination Port",
+     "SMTP (25)"
+    ],
+    "redirect_ip": [
+     "Translation ‣ Redirect Target IP",
+     "the alias of Home Assistant (for example HassOS)"
+    ],
+    "redirect_port": [
+     "Translation ‣ Redirect Target Port",
+     "SMTP (25), or your port alias if you use another host port"
+    ],
+    "log": [
+     "Options ‣ Log",
+     "on while you test (switch it off later)"
+    ],
+    "rule": [
+     "Options ‣ Firewall rule",
+     "**Pass**"
+    ]
+   },
+   "s4_title": "About the “Firewall rule” option",
+   "s4_text": "**Pass** creates the matching rule on your WAN interface for you, which is what you want here. With **Manual** or **Register rule** the NAT rule does not let the traffic through by itself: you would have to add a WAN rule (TCP, destination: the WAN address, port 25) yourself.",
+   "s5_title": "Save and apply",
+   "s5_text": "Press **Save**, then **Apply changes** at the top of the list. Without applying, nothing happens.",
+   "s6_title": "Check what guards your WAN",
+   "s6_text": "Mail servers all over the world connect to you. If you use country blocking (GeoIP), CrowdSec, Zenarmor or an IP block list in front of WAN, make sure they do not drop the big mail providers, which mostly sit in the USA.",
+   "s7_title": "Allow Home Assistant to go out",
+   "s7_text": "If you restrict outgoing traffic of the Home Assistant network, allow TCP to your sending service (usually port 587) and HTTPS (port 443). The app uses 443 for DNS checks and to find your public IP.",
+   "s8_title": "Watch the log while you test",
+   "s8_text": "Open **Firewall ‣ Log Files ‣ Live View** and filter for destination port 25 (this needs the “Log” option of the rule). Send the test mail from the Overview. A green “pass” line from an outside address means that the router did its part. A red “block” line shows which rule to fix. Nothing at all means that the traffic never reaches you, which points to your provider (see above).",
+   "ddns": "**Dynamic DNS:** let either this app (Domains page) or the OPNsense plugin **os-ddclient** update your DNS records, never both. If you use os-ddclient, leave the token fields of this app empty.",
+   "reflection": "**Optional, for tests from inside your network:** a name that points to your public IP only works from the inside if NAT reflection is on (**Firewall ‣ Settings ‣ Advanced**, “Reflection for port forwards”). It is not needed for real mail or for the test button, because those come from the internet. Alternatively add a host override in **Services ‣ Unbound DNS ‣ Overrides** that points your mail server name to `{ha}`."
+  },
+  "fritz": {
+   "intro": "The menu names below are the German ones of the FRITZ!Box with the English meaning in brackets.",
+   "s1_title": "Keep the address of Home Assistant fixed",
+   "s1_text": "Heimnetz, then Netzwerk (Home network, Network): open the Home Assistant entry and tick “Diesem Netzwerkgerät immer die gleiche IPv4-Adresse zuweisen” (always assign the same address).",
+   "s2_title": "Create the port sharing",
+   "s2_text": "Internet, then Freigaben (Permit access), then Portfreigaben (Port sharing). Click “Gerät für Freigaben hinzufügen”, pick the Home Assistant device, then “Neue Freigabe”:",
+   "rows": [
+    [
+     "Freigabe (Type)",
+     "Portfreigabe"
+    ],
+    [
+     "Anwendung (Application)",
+     "Andere Anwendung"
+    ],
+    [
+     "Bezeichnung (Name)",
+     "Mail Forwarder"
+    ],
+    [
+     "Protokoll (Protocol)",
+     "TCP"
+    ],
+    [
+     "Port an Gerät (Port on the device)",
+     "{port} bis {port}"
+    ],
+    [
+     "Port extern gewünscht (External port)",
+     "25 bis 25"
+    ],
+    [
+     "Freigabe aktivieren",
+     "ticked"
+    ]
+   ],
+   "s3_title": "Check that your connection is allowed to do this",
+   "s3_text": "If the FRITZ!Box says that the connection is “DS-Lite” or shows no public IPv4 address, incoming mail cannot reach you. See “Can your connection receive mail?” above."
+  },
+  "other": {
+   "intro": "Every router calls it differently: “Port forwarding”, “Virtual server”, “NAT” or “Applications and gaming”. The rule you need:",
+   "rows": [
+    [
+     "Protocol",
+     "TCP"
+    ],
+    [
+     "External / WAN port",
+     "25"
+    ],
+    [
+     "Internal IP address",
+     "{ha}"
+    ],
+    [
+     "Internal port",
+     "{port}"
+    ]
+   ],
+   "note": "Also give the Home Assistant computer a fixed address in the router (DHCP reservation), so that the rule keeps pointing at it."
+  }
+ },
+ "activity": {
+  "waiting_title": "⏳ Waiting to be sent",
+  "waiting_none": "Nothing is waiting. Messages normally leave within seconds.",
+  "failed_title": "🗑️ Given up on",
+  "address": "Address",
+  "goes_to": "Goes to",
+  "status": "Status",
+  "problem": "Last problem",
+  "sending_now": "sending now",
+  "try_n": "try {n} {when}",
+  "gave_up_when": "gave up {when}",
+  "retry": "Try again",
+  "send_now": "Send now",
+  "retrying": "Trying again",
+  "deleted": "Deleted",
+  "delete_title": "Delete this message?",
+  "delete_text": "It is removed for good and never delivered.",
+  "events": "📰 Recent events",
+  "events_none": "Nothing has happened since the app started."
+ },
+ "help": {
+  "title": "💡 Help",
+  "start": {
+   "title": "🚀 The short version",
+   "steps": [
+    "**🌐 Domains** – add your domain and create the two DNS records shown there.",
+    "**📬 Mailboxes** – add the people and the real inbox each one uses.",
+    "**📤 Sending** – pick a sending service. Gmail or WEB.DE is the quickest start.",
+    "**🛡️ Router & network** – forward port 25 to Home Assistant.",
+    "**🏠 Overview** – press “Send test mail”. Green everywhere means: done 🎉"
+   ]
+  },
+  "glossary": {
+   "title": "📖 Mini glossary",
+   "items": [
+    [
+     "Domain",
+     "The part after the @, for example `your-domain.com`."
+    ],
+    [
+     "DNS",
+     "The phone book of the internet. It translates names into addresses."
+    ],
+    [
+     "A record",
+     "Says which IP address a name belongs to. Your mail server name needs one that points to your home."
+    ],
+    [
+     "MX record",
+     "Says which server receives the mail of a domain. Without it senders do not know where to deliver."
+    ],
+    [
+     "Port 25",
+     "The door that mail servers use to talk to each other. Your router has to open it for this app."
+    ],
+    [
+     "Port forwarding / NAT",
+     "A rule in your router: “whatever knocks on port 25, pass it to Home Assistant”."
+    ],
+    [
+     "Sending service (relay)",
+     "A mail service that delivers the forwarded mail for you, so Gmail and Outlook trust it."
+    ],
+    [
+     "DNS only / orange cloud",
+     "At Cloudflare the orange cloud routes traffic through their proxy. Mail cannot pass through it, so the mail server name must be grey."
+    ],
+    [
+     "CGNAT / DS-Lite",
+     "Your provider shares one public address between many customers. Then nothing can reach your home from outside."
+    ],
+    [
+     "Dynamic DNS",
+     "A helper that updates your DNS record whenever your provider changes your IP address."
+    ]
+   ]
+  },
+  "faq": {
+   "title": "❓ Questions",
+   "items": [
+    [
+     "Does this work with a free DuckDNS domain?",
+     "Yes, for receiving. A DuckDNS name has no MX record, but mail servers then use the IP address of the name. For sending, use Gmail or WEB.DE, because you cannot add the DNS records that Brevo or SMTP2GO ask for."
+    ],
+    [
+     "Why not send directly from my home?",
+     "Gmail and Outlook distrust home connections: no reverse DNS name, residential address ranges and often a blocked port 25. A sending service delivers from a trusted address on port 587."
+    ],
+    [
+     "Can one person have several addresses?",
+     "Yes, even on different domains, for example one on your own domain and one on DuckDNS. They all go to the same inbox."
+    ],
+    [
+     "Where do replies go?",
+     "To the original sender. The forwarded mail carries the sender in the name and in Reply-To. The reply is sent from the inbox of the person, not from the new address."
+    ],
+    [
+     "Do I need this app if my domain is at Cloudflare?",
+     "Not necessarily. Cloudflare Email Routing forwards mail for free without a home server. This app is for DuckDNS names, several domains, or full control."
+    ],
+    [
+     "Is it safe to open port 25?",
+     "The app only accepts mail for addresses you added and refuses everything else, it is no open relay. Scanners will knock on the port anyway, keep the app updated."
+    ]
+   ]
+  },
+  "trouble": {
+   "title": "🛠️ When something does not work",
+   "items": [
+    [
+     "The test mail never arrives",
+     "Check the DNS checks on the Overview first, then the port forward and the live firewall log of your router, then whether your provider blocks incoming port 25 or shares your address."
+    ],
+    [
+     "“Needs your attention” in Activity",
+     "A setting is wrong, usually the login or sender address of the sending service. The message stays queued and goes out after you fix it."
+    ],
+    [
+     "Mail lands in spam",
+     "Normal for the first mail of a sender. Mark it as “not spam” once. For a lasting fix authenticate your domain at the sending service and use an address of that domain as sender."
+    ],
+    [
+     "“No such user” at the sender",
+     "The address is not added under Mailboxes, or the person is switched off."
+    ],
+    [
+     "Works for some senders only",
+     "Another MX record of the domain still points elsewhere, or the mail server name has an IPv6 (AAAA) record."
+    ]
+   ]
+  }
+ }
+}

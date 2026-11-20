@@ -12,6 +12,7 @@ from typing import NamedTuple, Optional
 
 from .addresses import is_valid_hostname, is_valid_local_part, normalize_address
 from .jsonfile import read_json, write_json
+from .messages import Message
 
 DOMAIN_KINDS = ("own", "duckdns")
 DELIVERY_MODES = ("relay", "direct")
@@ -26,8 +27,29 @@ SECRET_FIELDS = (
 )
 
 
-class ConfigError(ValueError):
-    """The submitted configuration is not valid; the message is meant for the user."""
+class ConfigError(Message):
+    """The submitted configuration is not valid; the code tells the web interface what to say."""
+
+    texts = {
+        "config_object": "The configuration has to be an object.",
+        "domain_kind": "Unknown domain type for {name}.",
+        "domain_invalid": "'{name}' is not a valid domain name.",
+        "duckdns_suffix": "A DuckDNS domain has to end with {suffix}.",
+        "domain_twice": "The domain {name} is listed twice.",
+        "mail_host_invalid": "'{host}' is not a valid mail server name.",
+        "person_name": "Every person needs a name.",
+        "target_invalid": "'{target}' is not a valid e-mail address for {name}.",
+        "target_loop": "{name}: the mailbox {target} is on one of your own domains, "
+                       "which would make mail go in circles.",
+        "local_invalid": "'{local}' cannot be used as the first part of an address ({name}).",
+        "domain_unknown": "The domain '{domain}' of {name} is not in your domain list.",
+        "address_twice": "{address} is used by {first} and {second}.",
+        "mode_unknown": "Unknown sending method.",
+        "security_unknown": "Unknown connection security.",
+        "sender_invalid": "'{sender}' is not a valid sender address.",
+        "port_number": "The port has to be a number.",
+        "port_range": "The port has to be between 1 and 65535.",
+    }
 
 
 class Route(NamedTuple):
@@ -92,17 +114,17 @@ def _normalize_domains(raw) -> list:
         name = _text(item.get("name")).lower().rstrip(".")
         kind = item.get("kind")
         if kind not in DOMAIN_KINDS:
-            raise ConfigError(f"Unknown domain type for {name or 'a domain'}.")
+            raise ConfigError("domain_kind", name=name)
         if not is_valid_hostname(name):
-            raise ConfigError(f"'{name}' is not a valid domain name.")
+            raise ConfigError("domain_invalid", name=name)
         if kind == "duckdns" and not name.endswith(DUCKDNS_SUFFIX):
-            raise ConfigError(f"A DuckDNS domain has to end with {DUCKDNS_SUFFIX}.")
+            raise ConfigError("duckdns_suffix", suffix=DUCKDNS_SUFFIX)
         if name in seen:
-            raise ConfigError(f"The domain {name} is listed twice.")
+            raise ConfigError("domain_twice", name=name)
         seen.add(name)
         mail_host = _text(item.get("mail_host")).lower().rstrip(".") or f"mail.{name}"
         if kind == "own" and not is_valid_hostname(mail_host):
-            raise ConfigError(f"'{mail_host}' is not a valid mail server name.")
+            raise ConfigError("mail_host_invalid", host=mail_host)
         domains.append({"name": name, "kind": kind, "mail_host": mail_host if kind == "own" else name})
     return domains
 
@@ -113,23 +135,22 @@ def _normalize_people(raw, domain_names: set) -> list:
         name = _text(item.get("name"), 60)
         target = normalize_address(_text(item.get("target")))
         if not name:
-            raise ConfigError("Every person needs a name.")
+            raise ConfigError("person_name")
         if target is None:
-            raise ConfigError(f"'{_text(item.get('target'))}' is not a valid e-mail address for {name}.")
+            raise ConfigError("target_invalid", target=_text(item.get("target")), name=name)
         if target.rpartition("@")[2] in domain_names:
-            raise ConfigError(f"{name}: the mailbox {target} is on one of your own domains, "
-                              "which would make mail go in circles. Use the real inbox, e.g. Gmail.")
+            raise ConfigError("target_loop", name=name, target=target)
         addresses = []
         for entry in item.get("addresses") or []:
             local = _text(entry.get("local")).lower()
             domain = _text(entry.get("domain")).lower()
             if not is_valid_local_part(local):
-                raise ConfigError(f"'{local}' cannot be used as the first part of an address ({name}).")
+                raise ConfigError("local_invalid", local=local, name=name)
             if domain not in domain_names:
-                raise ConfigError(f"The domain '{domain}' of {name} is not in your domain list.")
+                raise ConfigError("domain_unknown", domain=domain, name=name)
             address = f"{local}@{domain}"
             if address in claimed:
-                raise ConfigError(f"{address} is used by {claimed[address]} and {name}.")
+                raise ConfigError("address_twice", address=address, first=claimed[address], second=name)
             claimed[address] = name
             addresses.append({"local": local, "domain": domain})
         people.append({
@@ -148,21 +169,21 @@ def _normalize_delivery(raw: dict) -> dict:
     mode = raw.get("mode", "relay")
     security = relay.get("security", "starttls")
     if mode not in DELIVERY_MODES:
-        raise ConfigError("Unknown sending method.")
+        raise ConfigError("mode_unknown")
     if security not in SECURITY_MODES:
-        raise ConfigError("Unknown connection security.")
+        raise ConfigError("security_unknown")
     sender = _text(raw.get("sender_address")).lower()
     if sender and normalize_address(sender) is None:
-        raise ConfigError(f"'{sender}' is not a valid sender address.")
+        raise ConfigError("sender_invalid", sender=sender)
     host = _text(relay.get("host")).lower()
     if host and not _host_or_ip(host):
-        raise ConfigError(f"'{host}' is not a valid mail server name.")
+        raise ConfigError("mail_host_invalid", host=host)
     try:
         port = int(relay.get("port") or 587)
     except (TypeError, ValueError):
-        raise ConfigError("The port has to be a number.") from None
+        raise ConfigError("port_number") from None
     if not 1 <= port <= 65535:
-        raise ConfigError("The port has to be between 1 and 65535.")
+        raise ConfigError("port_range")
     return {
         "mode": mode,
         "sender_address": sender,
@@ -192,7 +213,7 @@ def _normalize_dynamic_dns(raw: dict) -> dict:
 def normalize(raw: dict) -> dict:
     """Returns a clean configuration or raises ConfigError."""
     if not isinstance(raw, dict):
-        raise ConfigError("The configuration has to be an object.")
+        raise ConfigError("config_object")
     domains = _normalize_domains(raw.get("domains"))
     return {
         "domains": domains,
@@ -222,11 +243,13 @@ def mask_secrets(config: dict) -> dict:
 
 
 def keep_stored_secrets(incoming: dict, stored: dict) -> dict:
-    """An empty secret in an update means 'unchanged'."""
+    """An empty secret in an update means 'unchanged'; ``<name>_clear: true`` removes it."""
     merged = copy.deepcopy(incoming)
     for path in SECRET_FIELDS:
         holder, key = _dig(merged, path, create=True)
-        if not holder.get(key):
+        if holder.pop(f"{key}_clear", False) is True:
+            holder[key] = ""
+        elif not holder.get(key):
             holder[key] = _dig(stored, path)[0][key]
     return merged
 

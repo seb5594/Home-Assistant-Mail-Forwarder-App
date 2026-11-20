@@ -1,5 +1,5 @@
 name: Mail Forwarder
-version: "2026.11.20"
+version: "2026.11.20.1"
 slug: mail_forwarder
 description: Receives mail for your own domains and forwards it to your Gmail, Outlook or WEB.DE inbox.
 url: https://github.com/seb5594/Home-Assistant-Mail-Forwarder-App

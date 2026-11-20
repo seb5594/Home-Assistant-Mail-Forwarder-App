@@ -10,6 +10,7 @@ import time
 from typing import Optional
 
 from . import settings
+from .messages import Message
 
 STEPS = ("sent", "arrived", "forwarded")
 
@@ -25,7 +26,7 @@ class TestTracker:
         token = secrets.token_hex(8)
         with self._lock:
             self._current = {"token": token, "alias": alias, "started": time.time(),
-                             "steps": {step: None for step in STEPS}, "error": ""}
+                             "steps": {step: None for step in STEPS}, "error": None}
         return token
 
     def can_start(self) -> bool:
@@ -42,10 +43,11 @@ class TestTracker:
             if self._current and self._current["token"] == token:
                 self._current["steps"][step] = time.time()
 
-    def fail(self, token: str, message: str) -> None:
+    def fail(self, token: str, error: Message) -> None:
+        """Remembers why the test failed (a message with code and params)."""
         with self._lock:
             if self._current and self._current["token"] == token:
-                self._current["error"] = message
+                self._current["error"] = {"text": str(error), **error.as_dict()}
 
     def snapshot(self) -> Optional[dict]:
         with self._lock:

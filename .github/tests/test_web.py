@@ -43,8 +43,8 @@ class WebTests(unittest.TestCase):
         _, state = self.harness.api("GET", "/api/state")
         state["config"]["people"][0]["target"] = "not-an-address"
         status, body = self.harness.api("PUT", "/api/config", state["config"])
-        self.assertEqual(status, 400)
-        self.assertIn("not-an-address", body["error"])
+        self.assertEqual((status, body["code"]), (400, "target_invalid"))
+        self.assertEqual(body["params"]["target"], "not-an-address")
 
     def test_posts_need_json(self):
         request = urllib.request.Request(f"http://127.0.0.1:{self.harness.web_port}/api/test-mail", data=b"x=1",
@@ -57,6 +57,7 @@ class WebTests(unittest.TestCase):
         status, body = self.harness.api("POST", "/api/relay/test")
         self.assertEqual(status, 200)
         self.assertTrue(body["ok"], body)
+        self.assertEqual(body["code"], "login_ok")
 
     def test_static_files_are_served_and_traversal_is_blocked(self):
         status, body, headers = self.get("/")

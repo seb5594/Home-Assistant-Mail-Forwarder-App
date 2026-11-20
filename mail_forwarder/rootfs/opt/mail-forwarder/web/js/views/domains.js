@@ -1,26 +1,19 @@
 // Domains: where the addresses live, which DNS records they need, and how to keep them current.
 import { api } from '../api.js';
-import { attempt, closeDialog, confirmDialog, save, showDialog } from '../context.js';
+import { attempt, closeDialog, confirmDialog, errorText, save, showDialog } from '../context.js';
+import { describeMessage } from '../checkview.js';
 import { copyable, h, icon } from '../dom.js';
 import { timeAgo } from '../format.js';
+import { rich, richList, t } from '../i18n.js';
 
-const TYPES = {
-  own: {
-    title: 'My own domain',
-    text: 'A domain you bought, for example at Cloudflare, with an address like name@your-domain.com.',
-  },
-  duckdns: {
-    title: 'Free DuckDNS domain',
-    text: 'A free name like family.duckdns.org. No purchase needed, addresses look like name@family.duckdns.org.',
-  },
-};
+const KINDS = ['own', 'duckdns'];
 
 function domainStatus(state, domain) {
   const checks = state.checks.items.filter((check) => check.id.startsWith('dns.') && check.id.endsWith(`.${domain.name}`));
-  if (!checks.length) return ['pending', 'Not checked yet'];
-  if (checks.some((check) => check.status === 'error')) return ['error', 'DNS needs attention'];
-  if (checks.some((check) => check.status === 'warn')) return ['warn', 'Works, with a warning'];
-  return ['ok', 'DNS is correct'];
+  if (!checks.length) return ['pending', 'pending'];
+  if (checks.some((check) => check.status === 'error')) return ['error', 'error'];
+  if (checks.some((check) => check.status === 'warn')) return ['warn', 'warn'];
+  return ['ok', 'ok'];
 }
 
 // ---- add a domain ----------------------------------------------------------------------------
@@ -30,18 +23,17 @@ function addDomainDialog() {
   const error = h('p', { class: 'error-text', role: 'alert' });
   const name = h('input', { type: 'text', placeholder: 'example.com', autocapitalize: 'none', autocomplete: 'off', spellcheck: 'false' });
   const mailHost = h('input', { type: 'text', placeholder: 'mail.example.com', autocapitalize: 'none', autocomplete: 'off', spellcheck: 'false' });
-  const hostField = h('label', { class: 'field' }, 'Mail server name', mailHost,
-    h('span', { class: 'hint' }, 'The name your MX record will point to. "mail." plus your domain is the usual choice, leave it empty for that.'));
+  const hostField = h('label', { class: 'field' }, t('domains.mail_host'), mailHost, h('span', { class: 'hint' }, t('domains.mail_host_hint')));
   const choices = h('div', { class: 'choice-grid' });
 
   const draw = () => {
-    choices.replaceChildren(...Object.entries(TYPES).map(([id, type]) =>
+    choices.replaceChildren(...KINDS.map((id) =>
       h('button', { class: 'choice', type: 'button', 'aria-pressed': String(kind === id), onclick: () => {
         kind = id;
         name.placeholder = id === 'own' ? 'example.com' : 'family.duckdns.org';
         hostField.classList.toggle('hidden', id !== 'own');
         draw();
-      } }, h('strong', null, type.title), h('span', null, type.text))));
+      } }, h('strong', null, t(`domains.types.${id}.title`)), h('span', null, t(`domains.types.${id}.text`)))));
   };
   draw();
 
@@ -51,23 +43,22 @@ function addDomainDialog() {
       await save((config) => config.domains.push({ name: name.value.trim(), kind, mail_host: kind === 'own' ? mailHost.value.trim() : '' }));
       closeDialog();
     } catch (problem) {
-      error.textContent = problem.message;
+      error.textContent = errorText(problem);
     }
   } },
-  h('h2', null, 'Add a domain'), choices,
-  h('label', { class: 'field' }, 'Domain name', name),
+  h('h2', null, t('domains.dialog_title')), choices,
+  h('label', { class: 'field' }, t('domains.domain_name'), name),
   hostField, error,
   h('div', { class: 'dialog-actions' },
-    h('button', { class: 'button button-quiet', type: 'button', onclick: closeDialog }, 'Cancel'),
-    h('button', { class: 'button', type: 'submit' }, 'Add domain'))));
+    h('button', { class: 'button button-quiet', type: 'button', onclick: closeDialog }, t('common.cancel')),
+    h('button', { class: 'button', type: 'submit' }, t('domains.add_button')))));
   name.focus();
 }
 
 async function removeDomain(domain, config) {
   const affected = config.people.flatMap((p) => p.addresses.filter((a) => a.domain === domain.name));
-  const sure = await confirmDialog({ title: `Remove ${domain.name}?`, confirmLabel: 'Remove', danger: true,
-    message: affected.length ? `${affected.length} address(es) on this domain are removed as well. Your DNS records stay untouched.`
-      : 'Your DNS records stay untouched.' });
+  const sure = await confirmDialog({ title: t('domains.remove_title', { name: domain.name }), confirmLabel: t('common.remove'), danger: true,
+    message: affected.length ? t('domains.remove_text_with', { count: affected.length }) : t('domains.remove_text') });
   if (!sure) return;
   await attempt(() => save((cfg) => {
     cfg.domains = cfg.domains.filter((d) => d.name !== domain.name);
@@ -82,40 +73,35 @@ function relativeName(host, domain) {
 }
 
 function ownDomainGuide(domain, state) {
-  const ip = state.public_ip || 'your public IP address';
+  const ip = state.public_ip || t('domains.own_guide.your_ip');
+  const g = (key) => t(`domains.own_guide.${key}`);
   return h('div', { class: 'stack' },
-    h('p', null, 'Open the DNS settings of ', h('strong', null, domain.name), ' (at Cloudflare: your domain, then ', h('em', null, 'DNS'), ', then ', h('em', null, 'Records'),
-      ') and create these two records:'),
+    h('p', null, rich('domains.own_guide.intro', { domain: domain.name })),
     h('div', { class: 'table-wrap' }, h('table', null,
-      h('thead', null, h('tr', null, ['Type', 'Name', 'Value', 'Notes'].map((title) => h('th', null, title)))),
+      h('thead', null, h('tr', null, ['type', 'name', 'value', 'notes'].map((key) => h('th', null, g(key))))),
       h('tbody', null,
         h('tr', null, h('td', null, 'A'), h('td', null, copyable(relativeName(domain.mail_host, domain.name))), h('td', null, copyable(ip)),
-          h('td', null, 'Proxy status: ', h('strong', null, 'DNS only'), ' (grey cloud). Skip this record if you switch on dynamic DNS below, the app creates it for you.')),
+          h('td', null, rich('domains.own_guide.a_notes'))),
         h('tr', null, h('td', null, 'MX'), h('td', null, copyable('@')), h('td', null, copyable(domain.mail_host)),
-          h('td', null, 'Priority ', h('strong', null, '10'), '. Delete other MX records of this domain.'))))),
-    h('div', { class: 'note warn' }, h('p', null,
-      h('strong', null, 'Cloudflare Email Routing: '), 'if you switched it on for this domain, it owns the MX records. Remove them first, the two cannot be used together.')),
-    h('p', { class: 'muted small' }, 'DNS changes need a few minutes to spread. The status above turns green by itself, or press "Run checks now" on the Overview.'));
+          h('td', null, rich('domains.own_guide.mx_notes'))))),),
+    h('div', { class: 'note warn' }, h('p', null, rich('domains.own_guide.routing'))),
+    h('p', { class: 'muted small' }, g('wait')));
 }
 
 function duckdnsGuide(domain) {
-  return h('ol', { class: 'how' },
-    h('li', null, 'Log in at ', h('a', { href: 'https://www.duckdns.org', target: '_blank', rel: 'noopener' }, 'duckdns.org'),
-      ' and create the subdomain ', h('span', { class: 'value' }, domain.name.replace('.duckdns.org', '')), '.'),
-    h('li', null, 'Copy your DuckDNS token from that page into "Keep DNS up to date" below, so that the name follows your IP address.'),
-    h('li', null, 'No MX record is needed. Senders fall back to the IP address of the name, which is what you want.'));
+  return h('ol', { class: 'how' }, richList('domains.duck_guide', { sub: domain.name.replace('.duckdns.org', '') }).map((nodes) => h('li', null, nodes)));
 }
 
 function domainCard(domain, state) {
-  const [status, text] = domainStatus(state, domain);
+  const [status, key] = domainStatus(state, domain);
   return h('section', { class: 'card' },
     h('div', { class: 'card-head' },
-      h('div', { class: 'row' }, h('h3', null, domain.name), h('span', { class: 'badge badge-info' }, TYPES[domain.kind].title)),
-      h('div', { class: 'row' }, icon(status), h('span', null, text))),
-    h('details', { open: status !== 'ok' }, h('summary', null, 'DNS records for this domain'),
+      h('div', { class: 'row' }, h('h3', null, domain.name), h('span', { class: 'badge badge-info' }, t(`domains.types.${domain.kind}.title`))),
+      h('div', { class: 'row' }, icon(status), h('span', null, t(`domains.status.${key}`)))),
+    h('details', { open: status !== 'ok' }, h('summary', null, t('domains.records')),
       h('div', { style: 'margin-top:10px' }, domain.kind === 'own' ? ownDomainGuide(domain, state) : duckdnsGuide(domain))),
     h('div', { class: 'row', style: 'margin-top:12px' },
-      h('button', { class: 'button button-danger button-small', type: 'button', onclick: () => removeDomain(domain, state.config) }, 'Remove domain')));
+      h('button', { class: 'button button-danger button-small', type: 'button', onclick: () => removeDomain(domain, state.config) }, t('domains.remove_domain'))));
 }
 
 // ---- dynamic DNS -----------------------------------------------------------------------------
@@ -125,46 +111,56 @@ function ddnsCard(state) {
   const hasOwn = domains.some((d) => d.kind === 'own');
   const hasDuck = domains.some((d) => d.kind === 'duckdns');
   if (!hasOwn && !hasDuck) return null;
+  const d = (key) => t(`domains.ddns.${key}`);
 
-  const duckToken = h('input', { type: 'password', placeholder: dynamic.duckdns.token_set ? 'Saved, type to replace' : 'Your DuckDNS token', autocomplete: 'off' });
-  const cloudToken = h('input', { type: 'password', placeholder: dynamic.cloudflare.api_token_set ? 'Saved, type to replace' : 'Cloudflare API token', autocomplete: 'off' });
+  const placeholder = (isSet, fallback) => (isSet ? d('saved_placeholder') : fallback);
+  const duckToken = h('input', { type: 'password', placeholder: placeholder(dynamic.duckdns.token_set, d('duck_placeholder')), autocomplete: 'off' });
+  const cloudToken = h('input', { type: 'password', placeholder: placeholder(dynamic.cloudflare.api_token_set, d('cloud_placeholder')), autocomplete: 'off' });
   const duckOn = h('input', { type: 'checkbox', checked: dynamic.duckdns.enabled });
   const cloudOn = h('input', { type: 'checkbox', checked: dynamic.cloudflare.enabled });
 
-  const results = Object.entries(state.ddns).map(([key, entry]) =>
-    h('div', { class: 'row' }, icon(entry.ok ? 'ok' : 'error'), h('span', { class: 'small' }, `${entry.detail} (${timeAgo(entry.time)})`)));
+  const forget = (provider, field) => h('button', { class: 'button button-danger button-small', type: 'button', onclick: () => attempt(() => save((cfg) => {
+    cfg.dynamic_dns[provider] = { enabled: false, token: '', api_token: '', [`${field}_clear`]: true };
+  }), d('forgotten')) }, d('forget'));
+
+  const results = Object.values(state.ddns).map((entry) =>
+    h('div', { class: 'row' }, icon(entry.ok ? 'ok' : 'error'), h('span', { class: 'small' }, `${describeMessage('ddns', entry)} (${timeAgo(entry.time)})`)));
 
   return h('section', { class: 'card' },
-    h('div', { class: 'card-head' }, h('h2', null, 'Keep DNS up to date')),
-    h('p', null, 'Your internet provider changes your public IP address from time to time. These switches let the app update your DNS records automatically, so that mail keeps finding you.'),
+    h('div', { class: 'card-head' }, h('h2', null, d('title'))),
+    h('p', null, d('intro')),
+    h('div', { class: 'note' }, h('p', null, rich('domains.ddns.off_note'))),
     h('div', { class: 'stack' },
       hasDuck ? h('div', { class: 'stack' },
-        h('label', { class: 'switch' }, duckOn, h('span', null, h('strong', null, 'DuckDNS'), h('br'), 'Updates your duckdns.org names.')),
-        h('label', { class: 'field' }, 'DuckDNS token', duckToken)) : null,
+        h('label', { class: 'switch' }, duckOn, h('span', null, h('strong', null, d('duck')), h('br'), d('duck_text'))),
+        h('label', { class: 'field' }, d('duck_token'), duckToken),
+        dynamic.duckdns.token_set ? h('div', null, forget('duckdns', 'token')) : null) : null,
       hasOwn ? h('div', { class: 'stack' },
-        h('label', { class: 'switch' }, cloudOn, h('span', null, h('strong', null, 'Cloudflare'), h('br'), 'Creates and updates the A record of your mail server name (DNS only, never proxied).')),
-        h('label', { class: 'field' }, 'Cloudflare API token', cloudToken,
-          h('span', { class: 'hint' }, 'Cloudflare dashboard, My Profile, API Tokens, Create Token, template "Edit zone DNS", pick your domain. It needs Zone: Read and DNS: Edit for that one zone only.'))) : null,
+        h('label', { class: 'switch' }, cloudOn, h('span', null, h('strong', null, d('cloud')), h('br'), d('cloud_text'))),
+        h('label', { class: 'field' }, d('cloud_token'), cloudToken, h('span', { class: 'hint' }, d('cloud_hint'))),
+        dynamic.cloudflare.api_token_set ? h('div', null, forget('cloudflare', 'api_token')) : null) : null,
       results,
       h('div', { class: 'row' },
         h('button', { class: 'button', type: 'button', onclick: async () => {
           const saved = await attempt(() => save((cfg) => {
             cfg.dynamic_dns.duckdns = { enabled: duckOn.checked, token: duckToken.value.trim() };
             cfg.dynamic_dns.cloudflare = { enabled: cloudOn.checked, api_token: cloudToken.value.trim() };
-          }), 'Saved. The app updates your DNS records now.');
+          }), d('saved'));
           if (saved) await attempt(() => api.updateDns());
-        } }, 'Save and update now'))));
+        } }, d('save')))));
 }
 
 export function renderDomains(ctx) {
   const { state } = ctx;
   return h('div', { class: 'grid' },
-    h('section', { class: 'card' }, h('h2', null, 'Your domains'),
-      h('p', null, 'A domain is the part after the @ in an address. Mail for it is delivered to this app, so the internet must know where this app lives: that is what the DNS records do.'),
-      h('p', { class: 'muted small' }, 'You can use several domains at once, for example your own domain plus a free DuckDNS name, and give one person addresses on both.')),
-    h('div', { class: 'row row-between' }, h('h2', { style: 'margin:0' }, 'Domains'),
-      h('button', { class: 'button', type: 'button', onclick: addDomainDialog }, '+ Add a domain')),
+    h('section', { class: 'card' }, h('h2', null, t('domains.title')),
+      h('p', null, t('domains.intro')),
+      h('p', { class: 'muted small' }, t('domains.intro_more'))),
+    h('section', { class: 'banner warn' }, icon('warn'),
+      h('div', null, h('h2', null, t('domains.router_ddns_title')), h('p', null, rich('domains.router_ddns_text')))),
+    h('div', { class: 'row row-between' }, h('h2', { style: 'margin:0' }, t('domains.list')),
+      h('button', { class: 'button', type: 'button', onclick: addDomainDialog }, t('domains.add'))),
     state.config.domains.length ? state.config.domains.map((domain) => domainCard(domain, state))
-      : h('section', { class: 'card' }, h('p', { class: 'muted' }, 'No domain yet.')),
+      : h('section', { class: 'card' }, h('p', { class: 'muted' }, t('domains.none'))),
     ddnsCard(state));
 }
